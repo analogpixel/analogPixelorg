@@ -18,7 +18,7 @@ if os.path.isfile("makeindex.cfg"):
   C_TEMPLATE_FILE = config.get('main','template')
   C_TEMPLATE      = open(C_TEMPLATE_FILE).read()
   C_UNPROCESSED   = config.get('main','unprocessed')
-  C_PROCESSED     = "html"
+  C_PROCESSED     = config.get('main','processed')
 
 
 def touch(fname, times=None):
@@ -56,4 +56,4 @@ for item in fileList[C_UNPROCESSED].values():
   with open( item['path'] + "l" , "w") as f:
     f.write(  pystache.render( C_TEMPLATE, data ) )
 
-  os.unlink( item['path'] )
+  #os.unlink( item['path'] )
