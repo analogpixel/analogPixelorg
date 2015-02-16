@@ -1,0 +1,86 @@
+#+HTML: <!-- TAGS: python,google,api -->
+
+* Updating a google Docs spreadsheet in python
+
+** Overview
+	 This document will cover how to connect to a google docs spreadsheet
+	 for reading and writing. Initially I set out to just use the google
+	 apis directly to do this, but google makes them a pain to use, and
+	 the information is jumbled between different version, and different
+	 languages, so after I got the oauth2 authentication working, I ended
+	 up using the python [[http://burnash.github.io/gspread/index.html][gspread]] library to do all the heavy lifting.
+
+** Configuring your application for use.
+	 Before you can connect to google with oauth2, you'll need to connect to
+	 the [[https://console.developers.google.com][Google Developers Console]] and create a new project that has access to
+	 do whatever it is you're trying to do.  When you create the credentials for
+	 your new project, make sure to select service account so you don't need to
+	 go through an authentication process each time you want to connect your
+	 application.  When you are finished, you'll need the Email Address, and the
+	 p12 key.
+
+** Python libraries
+	 for windows I needed to install these libraries to get everything working:
+	 #+begin_src bat
+   c:\Python27\Scripts\pip install pyopenssl --upgrade
+   c:\Python27\Scripts\pip install --upgrade google-api-python-client
+   c:\Python27\Scripts\pip install gspread
+	 #+end_src
+	 once everything was installed, you only need to import gspread to handle
+	 dealing with the spreadsheets, and the oauth client to deal with google's
+	 oauth2.
+	 #+begin_src python :tangle python/googleSheet.py
+   import gspread
+   from oauth2client.client import SignedJwtAssertionCredentials
+	 #+end_src
+
+** Authentication
+	 Authentication is done using the email and p12 key you obtained in the
+	 configuring your application section.  Using the SignedJwtAssertionCredentials
+	 function, you'll get credentials you can then pass to other authorization functions.
+
+	 One problem I ran into initially was I had the wrong scope added, so make sure you find
+	 the correct scope (google for it) for whatever you are trying to do.
+
+	 #+begin_src python :tangle python/googleSheet.py
+     with file('key.p12', 'rb') as key_file:
+       key = key_file.read()
+
+     credentials = SignedJwtAssertionCredentials(
+       '376360807684-q8iuiql4m7bgee6i1hu41c7ufnlse6hk@developer.gserviceaccount.com',
+       key,
+       scope=['https://spreadsheets.google.com/feeds',
+              'https://docs.google.com/feeds',
+              'https://www.googleapis.com/auth/drive'])
+	 #+end_src
+
+** Using gspread
+	 Now that you have a connection to google, you can use the gspread library to access that data.
+	 Make sure that the email address you go from the configuring your application section has
+	 access in the sharing tab of the spreadsheet you are trying to access.
+	 #+begin_src python :tangle python/googleSheet.py
+   gc = gspread.authorize(credentials)
+   wks = gc.open("Pentest Remediation").sheet1
+   print wks.row_values(1)
+	 #+end_src
+
+* links
+  - [[http://burnash.github.io/gspread/index.html][gspread api docs]]
+  - [[https://console.developers.google.com/project/gold-pod-840/apiui/api][Google Developers Console]]
+  - [[https://developers.google.com/drive/v2/reference/][Google Drive API ref]]
+  - https://developers.google.com/drive/web/scopes
+
+
+* Connecting to Google Drive
+#+begin_src python
+  from apiclient.discovery import build
+  import httplib2
+  from oauth2client.client import SignedJwtAssertionCredentials
+
+  http = httplib2.Http()
+  http = credentials.authorize(http)
+  drive = build('drive','v2', http=http)
+  print drive.files().list().execute()
+  print drive.properties().list(
+    fileId="1IX4JnJlET5wN6efVUOs4VLreyG_fsC68uxr6hrFyoQY").execute()
+#+end_src

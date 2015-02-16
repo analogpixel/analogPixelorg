@@ -1,0 +1,420 @@
+<html>
+		<head>
+			<link rel="stylesheet" href="../css/style.css" type="text/css" />
+			<script src="/js/jq.js"></script>
+			<script src="/js/snap.js"></script>
+			<script src="/js/icon.js"></script>
+			<script src="/js/iconLoad.js"></script>
+		</head>
+
+		<body>
+		<div id="container">
+
+				<div id="col1">
+					<div id=sidebar>
+						<div class=svgContainer><a href="/"><svg id=homeIcon></svg></a></div>
+						<div class=svgContainer><a href="mailto:analog@analogpxixel.org"><svg viewbox="0 0 40 40" id=mailIcon ></svg></a></div>
+						<div class=svgContainer><a href="https://github.com/analogpixel"><svg viewbox="0 0 40 40" id=githubIcon></svg></a></div>
+						<div class=svgContainer><a href="https://twitter.com/analogp1xel"><svg viewbox="0 0 40 40" id=twitterIcon></svg></a></div>
+						<div class=svgContainer><a href="http://analog.smugmug.com"><svg viewbox="0 0 40 40" id=smugIcon></svg></a></div>
+						<br><br>
+						<div class=menuItem><a href=../html/2015-01-12-Clojure-Image-Processing.html>Clojure Image Processing</a></div><div class=menuItem><a href=../html/2014-12-21-Learning-AWK-With-AWK-Koans.html>Learning AWK With AWK Koans</a></div><div class=menuItem><a href=../html/2014-12-15-Sharepoint-Explosions.html>Sharepoint Explosions</a></div><div class=menuItem><a href=../html/2014-11-30-Alien-Mouse.html>Alien Mouse</a></div><div class=menuItem><a href=../html/2014-10-30-Lego-Image-Creator.html>Lego Image Creator</a></div><div class=menuItem><a href=../html/2014-02-02-Connecting-to-Google-Docs-With-Python.html>Connecting to Google Docs With Python</a></div>
+					</div>
+				</div>
+
+				<div id="col2" >
+						<div id=pageContent>
+								<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Image Manipulation with clojure</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> Configure the project</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+Before you begin, you'll need to get <a href="http://leiningen.org/">Leiningen</a> which is a project manager
+for clojure.  Once you have it installed, you run:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">lein new image
+</pre>
+</div>
+<p>
+to create a new project called image. Once the project is created open the project.clj
+file add add a :main section to point to your main function (defn -main in your source)
+and then add the core.matrix and clatrix dependencies.  Now from the command line you can
+run lein deps from the image directory, and lein will go out and download all the libraries
+you requested, and all their dependencies.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">defproject</span> <span style="color: #cae682;">image</span> <span style="color: #95e454;">"0.1.0-SNAPSHOT"</span>
+  <span style="color: #e5786d;">:description</span> <span style="color: #95e454;">"FIXME: write description"</span>
+  <span style="color: #e5786d;">:url</span> <span style="color: #95e454;">"http://example.com/FIXME"</span>
+  <span style="color: #e5786d;">:license</span> {<span style="color: #e5786d;">:name</span> <span style="color: #95e454;">"Eclipse Public License"</span>
+            <span style="color: #e5786d;">:url</span> <span style="color: #95e454;">"http://www.eclipse.org/legal/epl-v10.html"</span>}
+  <span style="color: #e5786d;">:main</span> <span style="color: #92a65e; font-weight: bold;">image.core</span>
+  <span style="color: #e5786d;">:dependencies</span> [[<span style="color: #92a65e; font-weight: bold;">org.clojure</span>/clojure <span style="color: #95e454;">"1.6.0"</span>]
+                 [<span style="color: #92a65e; font-weight: bold;">net.mikera</span>/core.matrix <span style="color: #95e454;">"0.32.1"</span>]
+                 [<span style="color: #92a65e; font-weight: bold;">net.mikera</span>/vectorz-clj <span style="color: #95e454;">"0.28.0"</span>]
+                 ])
+</pre>
+</div>
+
+<p>
+ If you are using emacs, and have <a href="https://github.com/clojure-emacs/cider">CIDER</a> installed (<code>M-x package-install</code> cider)
+you can now open image/project.clj from emacs and then type:
+<code>M-x cider-jack-in</code> to connect to that project and edit it live in the REPL.
+Now that you have a REPL running in emacs connected to your project, you can open
+src/image/core.clj and start editing the program.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> Clojure namespace</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+The begining of the program is the name space declaration.  The name space has
+three main sections (besides the name)
+</p>
+</div>
+<div id="outline-container-sec-1-2-1" class="outline-4">
+<h4 id="sec-1-2-1"><span class="section-number-4">1.2.1</span> require</h4>
+<div class="outline-text-4" id="text-1-2-1">
+<p>
+load a clojure library from your class path and imports it, with the :as flag it will
+alias it so yo don't need to type out the entire lib name each time you want
+to use something from it.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-2-2" class="outline-4">
+<h4 id="sec-1-2-2"><span class="section-number-4">1.2.2</span> use</h4>
+<div class="outline-text-4" id="text-1-2-2">
+<p>
+loads an existing namespace and refers all the symbols from it into this namespace. So
+by using clojure.core.matrix you have all the function available in your namespace.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-2-3" class="outline-4">
+<h4 id="sec-1-2-3"><span class="section-number-4">1.2.3</span> import</h4>
+<div class="outline-text-4" id="text-1-2-3">
+<p>
+Import is used to import java libraries into the clojure namespace. If you want to
+load java.io.File and java.io.FileInputStream, you can use the notation:
+(java.io File FileInputStream)  but if you just want to load javax.imageio.ImageIO,
+placing () around it will actually break it and won't load it into the namespace
+like you'd want.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">ns</span> <span style="color: #92a65e; font-weight: bold;">image.core</span>
+  (<span style="color: #e5786d;">:use</span> <span style="color: #92a65e; font-weight: bold;">clojure.core.matrix</span> <span style="color: #92a65e; font-weight: bold;">clojure.core.matrix.operators</span>)
+  (<span style="color: #e5786d;">:require</span> [<span style="color: #92a65e; font-weight: bold;">clojure.core.matrix</span> <span style="color: #e5786d;">:refer</span> <span style="color: #e5786d;">:all</span>]
+            [<span style="color: #92a65e; font-weight: bold;">clojure.core.matrix.operators</span> <span style="color: #e5786d;">:as</span> mo])
+  (<span style="color: #e5786d;">:import</span> (<span style="color: #92a65e; font-weight: bold;">java.io</span> <span style="color: #92a65e; font-weight: bold;">File</span> <span style="color: #92a65e; font-weight: bold;">FileInputStream</span>) <span style="color: #92a65e; font-weight: bold;">javax.imageio.ImageIO</span> <span style="color: #92a65e; font-weight: bold;">java.awt.image.BufferedImage</span>)
+)
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> Loading an image into a matrix</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+Images are loaded via the java BufferedImage class.  Once the image is loaded
+it is converted into Matrix format and returned.  The makeMatrix format just takes
+a long array [2 2 2 2 2 2 2 2 2 2] and converts it into [ [2 2] [2 2] [2 2]&#x2026;.]
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">makeMatrix</span> [min mout w]
+  (<span style="color: #8ac6f2; font-weight: bold;">if</span> (&lt;= (count min) 0)
+    mout
+    (<span style="color: #e5786d;">makeMatrix</span> (drop w min) (conj mout (take w min)) w)
+    )
+  )
+
+(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">loadImageMatrix</span> [filename]
+
+  (<span style="color: #8ac6f2; font-weight: bold;">def</span> <span style="color: #cae682;">img</span>  (<span style="color: #92a65e; font-weight: bold;">ImageIO</span>/read (<span style="color: #92a65e; font-weight: bold;">FileInputStream.</span> (<span style="color: #92a65e; font-weight: bold;">File.</span> filename))))
+  (<span style="color: #8ac6f2; font-weight: bold;">def</span> <span style="color: #cae682;">w</span>  (<span style="color: #e5786d;">.getWidth</span> img))
+  (<span style="color: #8ac6f2; font-weight: bold;">def</span> <span style="color: #cae682;">h</span> (<span style="color: #e5786d;">.getHeight</span> img))
+
+  (<span style="color: #e5786d;">makeMatrix</span> (<span style="color: #e5786d;">.getRGB</span> ^<span style="color: #92a65e; font-weight: bold;">BufferedImage</span> img 0 0 w h <span style="color: #e5786d;">nil</span> 0, w ) (vec []) w)
+  )
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-4" class="outline-3">
+<h3 id="sec-1-4"><span class="section-number-3">1.4</span> Saving a matrix into an image</h3>
+<div class="outline-text-3" id="text-1-4">
+<p>
+This function saves a matrix back into an image
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">saveImageMatrix</span> [<span style="color: #e5786d;">imgMatrix</span> imtype filename]
+  (<span style="color: #8ac6f2; font-weight: bold;">let</span> [
+        h (row-count <span style="color: #e5786d;">imgMatrix</span>)
+        w (column-count <span style="color: #e5786d;">imgMatrix</span>)
+        <span style="color: #e5786d;">bufImg</span> (<span style="color: #92a65e; font-weight: bold;">BufferedImage.</span> w h <span style="color: #92a65e; font-weight: bold;">BufferedImage</span>/<span style="color: #e5786d;">TYPE_INT_ARGB</span>)
+        ]
+
+    (<span style="color: #8ac6f2; font-weight: bold;">dotimes</span> [y h]
+      (<span style="color: #8ac6f2; font-weight: bold;">dotimes</span> [x w]
+        (<span style="color: #e5786d;">.setRGB</span> <span style="color: #e5786d;">bufImg</span> x y (mget <span style="color: #e5786d;">imgMatrix</span> y x))
+        )
+      )
+    (<span style="color: #92a65e; font-weight: bold;">ImageIO</span>/write ^<span style="color: #92a65e; font-weight: bold;">BufferedImage</span> <span style="color: #e5786d;">bufImg</span> imtype  (<span style="color: #92a65e; font-weight: bold;">File.</span> filename))
+    )
+  )
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-5" class="outline-3">
+<h3 id="sec-1-5"><span class="section-number-3">1.5</span> 32bit RGBA values</h3>
+<div class="outline-text-3" id="text-1-5">
+<p>
+given a 32bit value, extract the RGBA values from it
+</p>
+
+<p>
+[AAAAAAAARRRRRRRRGGGGGGGGBBBBBBBB]
+</p>
+
+<p>
+To get the Alpha value A from a 32bit binary value, you would shift off the RGB values, so
+move everything to the right 24 times so those values slide off and you are just left with
+AAAAAAAA
+</p>
+
+<p>
+to get the Red value R from a 32bit binary value, you would shift off the GB values, so
+move everyhing to the right 16 times to remove all the G and B bits, and you are left with
+AAAAAAAARRRRRRRR.  You then  do a binary and of 0000000011111111 and have that remove the
+first 8 bits if they exist.
+</p>
+
+<p>
+To get the Green value G from a 32bit binary value, you would shift off the B values,
+and then do a binary and of 000000000000000011111111 to remove the A and R values.
+</p>
+
+<p>
+to get the Blue value B from a 32bit binary value, you would shift off nothing, and
+then do a binary and of 00000000000000000000000011111111 to get just the blue value
+</p>
+
+<p>
+^long in the decleration tells clojure that rgba is a long and not a double
+</p>
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">unpackrgba</span> [^long rgba]
+  (<span style="color: #8ac6f2; font-weight: bold;">let</span> [r (bit-and (bit-shift-right rgba 16) 0xFF)
+        g (bit-and (bit-shift-right rgba 8) 0xFF)
+        b (bit-and (bit-shift-right rgba 0) 0xFF)
+        a (bit-and (bit-shift-right rgba 24) 0xFF)
+        ]
+
+  [r g b a]
+  )
+)
+</pre>
+</div>
+
+<p>
+To explore binary conversion in clojure, you can call the (Integer/toString &lt;number&gt; &lt;base&gt;) function
+to print out number in base.  So if you have the integer 982044636 and you wanted to see what
+the binary value looked like you could run:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #92a65e; font-weight: bold;">Integer</span>/<span style="color: #e5786d;">toString</span> 982044636 2)
+</pre>
+</div>
+<p>
+and get: "111010100010001100111111011100".  Now if you wanted to shift some values you would run:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #92a65e; font-weight: bold;">Integer</span>/<span style="color: #e5786d;">toString</span> (bit-shift-right 982044636 16) 2)
+</pre>
+</div>
+<p>
+to get: "11101010001000" which is the above number with the 16 right most bits removed.
+</p>
+
+<p>
+To get RGBA values back into a single 32bit number.  I'm using unchecked-int since bufferedImage
+is expecting to get an int back, and just int isn't big enough.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">packrgba</span> [r g b a]
+  (unchecked-int
+  (bit-or
+  (bit-shift-left r 16)
+  (bit-shift-left g 8)
+  (bit-shift-left b 0)
+  (bit-shift-left a 24)
+  )
+  )
+  )
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-1-6" class="outline-3">
+<h3 id="sec-1-6"><span class="section-number-3">1.6</span> Reducing the intensity levels of your image</h3>
+<div class="outline-text-3" id="text-1-6">
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">reduceColor</span> [^long rgba n]
+  (<span style="color: #8ac6f2; font-weight: bold;">let</span>    [n (int (/ 255 n))
+           c (unpackrgba rgba)
+           rr (* (int (/ (c 0) n)) n)
+           rg (* (int (/ (c 1) n)) n)
+           rb (* (int (/ (c 2) n)) n)
+          ]
+    (packrgba rr rg rb (c 3))
+    )
+  )
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-7" class="outline-3">
+<h3 id="sec-1-7"><span class="section-number-3">1.7</span> Converting to black and white</h3>
+<div class="outline-text-3" id="text-1-7">
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">bw</span> [rgba n]
+  (<span style="color: #8ac6f2; font-weight: bold;">let</span>    [c (unpackrgba rgba)
+           rr (* (int (/ (c 0) n)) n)
+           rg (* (int (/ (c 1) n)) n)
+           rb (* (int (/ (c 2) n)) n)
+          ]
+    (packrgba rr rr rr (c 3))
+    )
+  )
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-8" class="outline-3">
+<h3 id="sec-1-8"><span class="section-number-3">1.8</span> Getting a neigbor matrix</h3>
+<div class="outline-text-3" id="text-1-8">
+<p>
+For operations that require you to know your neighbors, wouldn't
+it be nice to have a matrix that identified all your nieghbors:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-clojure"><span style="color: #99968b;">;; </span><span style="color: #99968b;">given a row and col give all he neighbors defined in n</span>
+(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">getNeigh</span> [m r c n]
+
+   (<span style="color: #8ac6f2; font-weight: bold;">if</span> (&gt; (count n) 0)
+     (validmset (<span style="color: #e5786d;">getNeigh</span> m r c (rest n)) (+ r ((first n) 0)) (+ c ((first n) 1)) 1)
+     (repeat (row-count m) (repeat (column-count m) 0 ))
+     )
+   )
+</pre>
+</div>
+<p>
+By passing in a matrix, the row and column you want the
+neighbors from, and then the list of neighbors:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">def</span> <span style="color: #cae682;">neighFour</span> [[-1 0] [0 -1] [0 1] [1 0]])
+(<span style="color: #8ac6f2; font-weight: bold;">def</span> <span style="color: #cae682;">neighEight</span> [[-1 -1] [-1 0] [-1 1] [0 -1] [0 1] [1 -1] [1 0] [1 1]])
+</pre>
+</div>
+<p>
+getNeigh will return a matrix of the same size with all values set to 0
+except for the neighbors which are set to 1.  And since we could be looking for
+values outside of the matrix, a simple helper function to handle that:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-clojure"><span style="color: #99968b;">;; </span><span style="color: #99968b;">if setting this is valid then set it and return it</span>
+<span style="color: #99968b;">;; </span><span style="color: #99968b;">if it is out of bounds just return the unchanged matrix</span>
+(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">validmset</span> [m r c v]
+  (<span style="color: #8ac6f2; font-weight: bold;">if</span> (<span style="color: #8ac6f2; font-weight: bold;">and</span> (&gt;= r 0)
+           (&gt;= c 0)
+           (&lt; r (row-count m) )
+           (&lt; c (column-count m) ))
+    (mset m r c v)
+    m
+    )
+
+  )
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-9" class="outline-3">
+<h3 id="sec-1-9"><span class="section-number-3">1.9</span> Test code</h3>
+<div class="outline-text-3" id="text-1-9">
+</div><div id="outline-container-sec-1-9-1" class="outline-4">
+<h4 id="sec-1-9-1"><span class="section-number-4">1.9.1</span> Links to helpful places</h4>
+<div class="outline-text-4" id="text-1-9-1">
+<ul class="org-ul">
+<li><a href="http://docs.oracle.com/javase/7/docs/api/java/awt/image/BufferedImage.html">Java BufferedImage class docs</a>
+</li>
+<li><a href="http://stackoverflow.com/questions/10880083/get-rgb-of-a-bufferedimage">Getting RGB value of buffeeredImage</a>
+</li>
+<li><a href="http://stackoverflow.com/questions/19202082/clojure-amap-is-very-slow">Why amap is running slow</a>
+</li>
+<li><a href="http://www.slideshare.net/mikeranderson/2013-1114-enter-thematrix">Core.matrix presentation</a>
+</li>
+</ul>
+
+<p>
+The main test program
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-clojure">(<span style="color: #8ac6f2; font-weight: bold;">defn</span> <span style="color: #cae682;">-main</span>
+[&amp; args]
+  (set-current-implementation <span style="color: #e5786d;">:vectorz</span>)
+  (<span style="color: #8ac6f2; font-weight: bold;">set!</span> <span style="color: #e5786d;">*warn-on-reflection*</span> <span style="color: #e5786d;">true</span>)
+
+  (<span style="color: #8ac6f2; font-weight: bold;">def</span> <span style="color: #cae682;">m</span> (<span style="color: #e5786d;">loadImageMatrix</span> <span style="color: #95e454;">"c:/data/1.png"</span>))
+  (<span style="color: #8ac6f2; font-weight: bold;">def</span> <span style="color: #cae682;">n</span> (<span style="color: #e5786d;">loadImageMatrix</span> <span style="color: #95e454;">"c:/data/2.png"</span>))
+
+  (<span style="color: #e5786d;">saveImageMatrix</span> (<span style="color: #92a65e; font-weight: bold;">mo</span>/- m n) <span style="color: #95e454;">"png"</span> <span style="color: #95e454;">"c:/data/yay.png"</span>)
+  (<span style="color: #e5786d;">saveImageMatrix</span> (emap #(bw <span style="color: #cae682;">%</span> 23) (<span style="color: #92a65e; font-weight: bold;">mo</span>/- m n)) <span style="color: #95e454;">"png"</span> <span style="color: #95e454;">"c:/data/yay.png"</span>)
+)
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+						</div>
+				</div>
+
+		</div>
+		</body>
+</html>

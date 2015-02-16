@@ -1,0 +1,123 @@
+* Overview
+
+#+BEGIN_HTML
+In my daily life there are no other chores than<br>
+Those that happen to fall into my hands.<br>
+Nothing I choose, nothing I reject.<br>
+Nowhere is there ado, nowhere a slip.<br>
+I have no other emblems of my glory than<br>
+the mountains and hills without a spot of dust<br>
+My magical power and spiritual exercise consists in<br>
+Learning Awk and applying it to my daily problems<br>
+<br>
+These Awk Koans makes the mind its foundation and no-gate its gate.<br>
+Now, how do you pass through this no-gate?<br>
+It is said that things coming in through the gate can never be your own treasures.<br>
+What is gained from external circumstances will perish in the end.<br>
+However, such a saying is already raising waves when there is no wind.<br>
+It is cutting unblemished skin.<br>
+As for those who try to understand through other people's words,<br>
+they are striking at the moon with a stick;<br>
+scratching a shoe, whereas it is the foot that itches.<br>
+What concern have they with the truth.<br>
+Only practice of the art of Awk will lead the student to understanding.<br>
+Yet, sometimes, the student requires a push in the direction of truth,<br>
+and for that, they should reference the <a href="http://www.gnu.org/software/gawk/manual/gawk.html">GNU Awk User's Guide</a>
+But the truth will stay hidden from you.<br>
+You must go and seek were it is hidden; work to pull it from it's hole.<br>
+Now go find the truth of awk.
+<br>
+#+END_HTML
+
+** Installation
+	 On Linux it's a pretty easy install, scroll down to the notes on getting this to run
+	 under windows if you are having issues getting it to run under windows.
+
+	 #+begin_src sh
+	 # git clone https://github.com/analogpixel/awkKoans<br>
+	 # cd awkKoans<br>
+	 # ./koan.py<br>
+	 #+end_src
+
+	 One note, this is still under active development, and hopefully more and more koans will
+	 be added. So once you finish all of the koans, you should check back to see if any new ones
+	 have been added.
+
+** Basic Usage
+	 To start the program just run ./koan.py or python koan.py.
+
+	 [[../img/awkKoans/screenShot1.png]]
+
+	 - Running koan.py will autogenerate the files you need to edit
+	 - edit the file indicated on the koan text under "File to edit"
+	 - when you save, your solution will be validated.
+	 - if you are correct, you'll move to the next koan
+	 - if you are wrong, it'll boo you
+
+** Advanced Usage
+*** To list all the koans:
+		#+begin_src sh
+		#./koan.py -l<br>
+		0 catText<br>
+		1 simplePatternMatch<br>
+		2 beginingOfLineMatch<br>
+		3 endOfLineMatch<br>
+		...<br>
+
+		#+end_src
+
+*** to test a koan from the command line
+		Just edit the .awk file created by the program, and then use the -t option
+		to test if your solution is correct.
+		#+begin_src sh
+		#./koan.py -k 1 -o<br>
+		#vi catText.awk<br>
+		#./koan.py -k 1 -t<br>
+		#+end_src
+
+*** Running on Windows
+		This testing framework was actually written on a windows box. You just need a few things:
+
+		- Since I use ansi colors on the terminal, just a normal dos cmd prompt doesn't work, you'll need something like [Conemu](https://code.google.com/p/conemu-maximus5/)
+		- The entire program runs under python, so you'll need [python 2.7](http://www.python.org)
+		- and since you are learning awk, you'll probally need [awk](http://gnuwin32.sourceforge.net/packages/gawk.htm) installed for this to work.
+
+
+** Build Notes
+
+*** Python
+		To get the ansi colors within python, I just used escape characters to set the colors
+
+		#+begin_src python
+		def clear():
+				return u'\033[0;0H\033[2J'
+
+		def bold(msg):
+				return u'\033[1m%s\033[0m' % msg
+
+		def color(this_color, string):
+				"""
+				http://ascii-table.com/ansi-escape-sequences.php
+				colors 30-37
+				"""
+				return "\033[" + this_color + "m" + string + "\033[0m"
+		#+end_src
+
+		this doesn't work within cmd shell on windows, but it should work on just about any other
+		system out there.  I think if I upgrade the display system, the next version will just
+		start a local webserver and host the data that way.
+
+		the main loop is just getting the current time on the file you should be editing and then watches to see if that file changes.  I think there are actually a few editors that this won't work on, but for the most part if your editor isn't doing something too stupid, it should force the code to check when you save it.
+
+		#+begin_src python
+      while True:
+        if getKoanTime() != currentMTime:
+          currentMTime = getKoanTime()
+          if testCommand():
+            nextKoan()
+            print(currentText)
+        else:
+          print("booo")
+
+        time.sleep(1)
+		#+end_src

@@ -1,0 +1,217 @@
+<head>
+    <style>
+        body { overflow: hidden; margin: 0; padding:0}
+        canvas { width: 100%; height: 100% }
+    </style>
+    
+    <script src="jq.js"></script>
+    <script src="three.min.js"></script>
+    <script src="OrbitControls.js"></script>
+    <script src="fileLoader.js"></script>
+    <script src="buildShapes.js"></script>
+    <script src="dat.gui.min.js"></script>
+</head>
+
+<body>
+     <!-- used to upload and process the image -->
+   <div id=uploader><input  type="file" id="file_input" name="file"> </div>
+   <script>$("#file_input").change( function(evt) { handleFileSelect(evt); } ); </script>
+   <canvas id=mycanvas width=400 height=400 style="visibility:hidden; display: none"></canvas>
+   
+    <script>
+	
+	
+	// http://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
+	var guiUpdates = function() {
+	    this.colorType = 'lego';
+	    this.imageWidth = 60;
+	    this.imageHeight = 60;
+	    this.shine = 4;  // how shiney is the brick
+	    this.lightLevel = 1; // how much light
+	    this.posterizeLevel = 4;
+	    this.showGrid = false;
+	    this.showXYZ = false;
+	    this.enableFog = true;
+	    this.autoRotate = false;
+	}
+	
+	gui = new dat.GUI();
+	var guiData = new guiUpdates();
+	var preFolder = gui.addFolder('preload');
+	var postFolder = gui.addFolder('postload');
+	
+	preFolder.add(guiData, 'colorType', ['posterize','lego'] );
+	preFolder.add(guiData, 'imageWidth', 10,1000).step(1);
+	preFolder.add(guiData, 'imageHeight', 10,1000).step(1);
+	preFolder.add(guiData, 'posterizeLevel', 1, 30).step(1);
+	preFolder.add(guiData, 'shine', 0, 50).step(1);
+	preFolder.add(guiData, 'enableFog');
+	
+	postFolder.add(guiData, 'lightLevel', 0, 4).step(.01);
+	postFolder.add(guiData, 'showGrid');
+	postFolder.add(guiData, 'showXYZ');
+	postFolder.add(guiData, 'autoRotate');
+	
+	preFolder.open();
+	
+	// models to load	
+	var loadFiles = ["models/twobyfourLego.js" , "models/twobytwoLego.js"  , "models/onebyoneLego.js" ];
+	var models = {};
+	
+	// global variables
+	var renderer, ocontrols,scene,camera,gui, hemiLight,gh,ah;
+	var unitBlock = 8.05;  // how big is a 1x1 block
+	var meshColors = {}; // holds all the different mesh colors
+	//var posterizeLevel = 6; // what level to posterize the picture
+	
+	// what shapes sizes do we have to work with, and what model to use for them
+	var shapes = [
+		  [4,2,'twobyfourLego'],
+		  [2,2, 'twobytwoLego'],
+		  [1,1, 'onebyoneLego']
+		 ];
+	
+	var layout = [];
+
+	var legoColors = [ ['red',   [169,51,57]],
+			   ['yellow',[254,196,0]],
+			   ['green', [0,123,40] ],
+			   ['blue',  [0,87,168 ]],
+			   ['white', [255,255,255]],
+			   ['black', [0,0,0]]
+			 ];
+	
+	function loadResources() {
+	    // if there are models to load in the loadFiles array load them and place them in the models
+	    // dictionary, then remove the item from the loadFiles array until there is nothing left.
+	    if ( loadFiles.length > 0 ) {
+		var loader = new THREE.JSONLoader();
+		filename  = loadFiles[0];
+		modelName = filename.split('/')[1].split('.')[0];
+		
+		loader.load( filename , function( geometry) {
+			models[modelName] = {}
+			models[modelName]['mesh'] = new THREE.Mesh( geometry );
+			
+			//compute the bounding box on this object
+			// so we can get boundBox.max.x and z so we can reposition
+			// the object on the corner
+			models[modelName]['mesh'].geometry.computeBoundingBox();
+			
+			console.log("Loaded:", loadFiles.shift());
+			loadResources(); 
+		});    
+	    } else {
+		    displayShapes();
+	    }
+	}
+	
+	function pixel(x,y, model, textureColors){
+	    var nm = new THREE.Mesh( models[model]['mesh'].geometry, textureColors );
+	    nm.position.x = nm.geometry.boundingBox.max.x;
+	    nm.position.z = nm.geometry.boundingBox.max.z;
+	    nm.position.x += (x*unitBlock);
+	    nm.position.z += (y*unitBlock);
+	    scene.add( nm);
+	}
+	
+	// take an array of [r,g,b,a] and return
+	// a key of r_g_b
+	function makePixelKey(pd) {
+	    r = pd[0];
+	    g = pd[1];
+	    b = pd[2];
+	    a = pd[3];
+	    return r + "_" + g + "_" + b;
+	}
+
+	function getPixel(x,y) {
+	    var r = imagePixelData.data[((x  + (y * guiData.imageWidth))*4) +0 ];
+	    var g = imagePixelData.data[((x  + (y * guiData.imageWidth))*4) +1 ];
+	    var b = imagePixelData.data[((x  + (y * guiData.imageWidth))*4) +2 ];
+	    var a = imagePixelData.data[((x  + (y * guiData.imageWidth))*4) +3 ];
+	    
+	    return [r,g,b,a];
+	}
+    
+	function animate() {
+	    requestAnimationFrame( animate );
+	    ocontrols.update();
+	    hemiLight.intensity = guiData.lightLevel;
+	    
+	    // make the grid and axis helpers visible or not
+	    gh.visible = guiData.showGrid;
+	    ah.visible = guiData.showXYZ;
+	    
+	    ocontrols.autoRotate = guiData.autoRotate;
+	    render();
+	}
+	
+	function render() {
+	    renderer.render( scene, camera );        
+	}
+	
+	
+	function displayShapes() {
+	    for (var x=0; x < guiData.imageWidth; x++) {
+		for (var y=0; y < guiData.imageHeight; y++) {
+		    if (layout[x][y] != -2) {
+			pixel(x,y, layout[x][y], meshColors[ makePixelKey( getPixel(x,y) ) ] );
+		    }
+		}
+	    }
+	    
+	   
+	    animate();
+	}
+	
+	function init() {
+	    scene = new THREE.Scene();
+	    
+	    if (guiData.enableFog) {
+		scene.fog = new THREE.FogExp2( 0x000000, 0.0015 );
+	    }
+	    
+	    camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, .1, 5000 );
+	    var camX = (guiData.imageWidth * unitBlock)/2;
+	    var camY = (guiData.imageHeight * unitBlock)/2;
+	    camera.position.set( camX, 500, camY);
+	    camera.lookAt(new THREE.Vector3( camX, 0, camY ));
+	    camera.near = 50;
+	    camera.far= 800;
+	    
+	    renderer = new THREE.WebGLRenderer();
+	    renderer.setSize( window.innerWidth, window.innerHeight );
+	    renderer.castShadow = true;
+	    renderer.receiveShadow = true;
+	    
+	    ocontrols = new THREE.OrbitControls( camera );
+	   // ocontrols.damping = 0.2;
+	    ocontrols.target = new THREE.Vector3( camX, 0, camY );
+	    ocontrols.addEventListener( 'change', render );
+	    
+	    // Red is X
+	    // Green is Y
+	    // Blue is Z
+	    ah = new THREE.AxisHelper(100);    scene.add(ah);
+	    gh = new THREE.GridHelper(100,10); scene.add(gh);
+	   
+	    hemiLight = new THREE.HemisphereLight(0xFFFFFF, 0x000000, guiData.lightLevel ) 
+	    scene.add( hemiLight );
+	
+	    
+	    document.body.appendChild( renderer.domElement );
+	    loadResources();
+	    
+	    
+	
+	}
+	
+	
+	
+	
+    </script>
+  
+   
+   
+</body>

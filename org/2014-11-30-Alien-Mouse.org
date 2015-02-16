@@ -1,0 +1,14 @@
+[[../img/alienMouse/alienMouse1.jpg]]
+
+# What is it?
+I found this old IBM optical Mouse:
+
+[[../img/alienMouse/m2_ibm_optic.jpg]]
+
+and then I took it apart, and as I was playing with the parts I noticed it kind of looked like an alien. So the next logical thing was to make an alien out of it:
+
+[[http://analog.smugmug.com/Make-Things/][More Pictures here]]
+
+# The pulsating eyes
+
+It may be hard to see from the picture, but the eyes pulsate red. I used an 8pin Arduino Tiny hooked up to a 9V battery and a voltage regulator. The Arduino runs the code to change the voltage to the LEDs by changing the analog voltage out to them.

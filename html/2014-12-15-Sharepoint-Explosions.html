@@ -1,0 +1,215 @@
+<html>
+		<head>
+			<link rel="stylesheet" href="../css/style.css" type="text/css" />
+			<script src="/js/jq.js"></script>
+			<script src="/js/snap.js"></script>
+			<script src="/js/icon.js"></script>
+			<script src="/js/iconLoad.js"></script>
+		</head>
+
+		<body>
+		<div id="container">
+
+				<div id="col1">
+					<div id=sidebar>
+						<div class=svgContainer><a href="/"><svg id=homeIcon></svg></a></div>
+						<div class=svgContainer><a href="mailto:analog@analogpxixel.org"><svg viewbox="0 0 40 40" id=mailIcon ></svg></a></div>
+						<div class=svgContainer><a href="https://github.com/analogpixel"><svg viewbox="0 0 40 40" id=githubIcon></svg></a></div>
+						<div class=svgContainer><a href="https://twitter.com/analogp1xel"><svg viewbox="0 0 40 40" id=twitterIcon></svg></a></div>
+						<div class=svgContainer><a href="http://analog.smugmug.com"><svg viewbox="0 0 40 40" id=smugIcon></svg></a></div>
+						<br><br>
+						<div class=menuItem><a href=../html/2015-01-12-Clojure-Image-Processing.html>Clojure Image Processing</a></div><div class=menuItem><a href=../html/2014-12-21-Learning-AWK-With-AWK-Koans.html>Learning AWK With AWK Koans</a></div><div class=menuItem><a href=../html/2014-12-15-Sharepoint-Explosions.html>Sharepoint Explosions</a></div><div class=menuItem><a href=../html/2014-11-30-Alien-Mouse.html>Alien Mouse</a></div><div class=menuItem><a href=../html/2014-10-30-Lego-Image-Creator.html>Lego Image Creator</a></div><div class=menuItem><a href=../html/2014-02-02-Connecting-to-Google-Docs-With-Python.html>Connecting to Google Docs With Python</a></div>
+					</div>
+				</div>
+
+				<div id="col2" >
+						<div id=pageContent>
+								<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+The daily corporate dreariness that tugs at our imagination;
+pulling us into hazardous waters, uncharted fun. What adventure
+will this dreariness force us to fall into?  What will this strange
+and perplexing adventure teach us?
+</p>
+
+<p>
+What technology here, in this cage we willing sit, makes us distrustful of it; makes us lose our patience,
+and turns us away without the data we have searched?
+If the Sphinx were to ask a riddle, "what is that that plagues your days
+with corporate fodder?" And What, What is the purpose of this device;
+a device of holding that we all distrust?  And then like the Sphinx,
+we question, what value does this give us? Does it give us truth,
+or does it give us untruth, and in the end, do either exist in this realm
+of corporate word-smithing?
+</p>
+
+<p>
+How could anything originate out of its opposite?  How can we extract
+learning and truth, out of banality and untruth?  How can we bring the
+wise man back from the brink of mental destruction?  Are these just
+dreams of a fool?  Can something be done to save our poor souls
+from the damnation of the corporation?
+</p>
+
+<p>
+But who wishes to concern himself with such dangerous thoughts? For
+that investigation one must push beyond the spreadsheets and documents
+held within the system.  You must throw away your title, knowledge worker,
+and become something greater.
+</p>
+</div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> The Grand Idea</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+How far can an idea take us from the tedium of the day, and what distance is needed to bring
+us to a: life-furthering, life-preserving, and species-preserving state for our mental well being?
+We must grasp to this hope which is indispensable to us now, for without that we are left staring
+at a monitor of hoodoo and voodoo we care very little about.
+</p>
+
+<p>
+But the idea is why we are here, and that idea is to add verbs to each little click of the mouse.
+The verb we'll be adding is boom, and we'll do it in the language of animated pictures on
+the screen.  Each click, a new explosion added to the sharepoint screen.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> The explosion (inkscape animation)</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+The <a href="https://github.com/analogpixel/sharepointExplosion/blob/master/boom.svg">Explosion</a> was created in inkscape by separating each part of the explosion onto it's own layer and then exporting all the layers via save as -&gt; JessyInk Zipped png  from the main inkscape menu.
+</p>
+
+
+<div class="figure">
+<p><img src="../img/sharepointExplosion/inkscapeSaveAs.png" alt="inkscapeSaveAs.png" />
+</p>
+</div>
+
+<p>
+This exports a zip file which has each layer exported as a separate png file.  Once I have all those small files, I use ImageMagic's convert utility to put them all together as an animated gif file
+</p>
+
+<p>
+```
+convert.exe  -dispose Background -delay 7 -loop 1 -resize 150x150 tempa\\*.png boom.gif
+```
+</p>
+
+<p>
+and that gets you this (except the real version only loops once)
+</p>
+
+
+<div class="figure">
+<p><img src="../img/sharepointExplosion/boom.gif" alt="boom.gif" />
+</p>
+</div>
+
+<p>
+I was doing this so many times, I put together a small python scripts to do it for me to save some typing: <a href="https://github.com/analogpixel/sharepointExplosion/blob/master/scripts/createAnimation.py">script</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> The javascript</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+The next thing I needed to do was get the animation to play wherever the mouse might click happen to click on the page.  I took the lazy route and use jquery to do a lot of the heavy lifting which probably increased the size of the final javascript, but hey, it's only more bits.
+</p>
+
+<p>
+To get the position of the mouse click I just attached a mouse click to the document body via Jquery:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-javascript">$(document).click( <span style="color: #8ac6f2; font-weight: bold;">function</span>(<span style="color: #cae682;">evt</span>) {
+.
+.
+}
+</pre>
+</div>
+
+<p>
+When the click is activated, it gets the x,y position of mouse via the evt.clientX and evt.clientY properties.  It uses those to update the css left and top values of the image that is holding the animated gif.
+</p>
+
+<p>
+but if the gif only plays through once and stops, how do we get to to restart itself for this click?  When the img is first loaded, there is no src attribute on it, and after the image plays once, the src is removed again.  Whenever a src is added to the img container, it causes the animation to play again.
+</p>
+
+<p>
+The click function causes the &lt;image&gt; to become visible on the page,  sets the x,y position, and sets the src attribute to point to the animated gif.  Then I set a timeout to unset the src after 700ms.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-javascript">setTimeout( <span style="color: #8ac6f2; font-weight: bold;">function</span>() {
+  $(<span style="color: #95e454;">"#boom"</span>).attr(<span style="color: #95e454;">"src"</span>,<span style="color: #95e454;">""</span>);
+  $(<span style="color: #95e454;">"#boom"</span>).css(<span style="color: #95e454;">"display"</span>, <span style="color: #95e454;">"none"</span>);
+  }, 700);
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-4" class="outline-3">
+<h3 id="sec-1-4"><span class="section-number-3">1.4</span> Packing it up</h3>
+<div class="outline-text-3" id="text-1-4">
+<p>
+Getting pretty close to getting this thing into sharepoint, but I needed everything packaged up nicely.  The first thing to tackle was the external image dep, which also solved the problem of changing the src tag of an image which causes it to reload from the server each time.
+</p>
+
+<p>
+using <a href="http://websemantics.co.uk/online_tools/image_to_data_uri_convertor/result/">this</a> page I converted the image into a base64 data url which I stored in a variable.  Now instead of pulling the image from the server, it is now part of the page.
+</p>
+
+<p>
+I then copied the minified jquery library to the top of my script, and modified all the code to be two script blocks.  This was all saved in the file include.txt
+</p>
+
+<p>
+Now I had the image, and the code to make everything work.  Just need to get that to play nice on a sharepoint page.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-1-5" class="outline-3">
+<h3 id="sec-1-5"><span class="section-number-3">1.5</span> Steps</h3>
+<div class="outline-text-3" id="text-1-5">
+<ul class="org-ul">
+<li>upload the include.txt file to shared documents. this file contains the two script blocks (one for jquery and one for the boom code).
+</li>
+<li>right click on the uploaded file and save the url to it.
+</li>
+<li>under site actions select edit page
+</li>
+<li>add a webpart -&gt; media and content -&gt; content editor web part
+</li>
+<li>under the Web Part Tools tab unde -&gt; option, select web part properties ![alt tag](/img/sharepointExplosion/webPartProp.png)
+</li>
+<li>now in the properties, paste the link you got from your document in the content link section:  ![alt tag](/img/sharepointExplosion/setLink.png)
+</li>
+</ul>
+
+<p>
+If everything worked, you should now see a little explosion every where you click on the page.
+</p>
+</div>
+</div>
+</div>
+
+						</div>
+				</div>
+
+		</div>
+		</body>
+</html>
