@@ -64,4 +64,4 @@
 		#+end_src
 
 ** Demo
-	 [[/js/lego3d/index.html][Click here for the demo]]
+	 [[../js/lego3d/index.html][Click here for the demo]]
