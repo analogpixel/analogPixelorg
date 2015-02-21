@@ -5,6 +5,13 @@
 #+HTML_HEAD: <style>pre.src {background-color: #303030; color: #e5e5e5;}</style>
 
 * Puppet Deployment overview
+	This is the full production build of puppet I use.  When the configuration from this
+	post is exported, I'm able to use Vagrant to build a fully functional mirror
+	of my puppet master which is great for testing.  The included Vagrant files also pull
+	up a rhel based and debian based client for client testing.
+
+	The system looks like this:
+
   #+begin_src ditaa :file ../img/puppetOverview.png
 
     +----------+                         +---------+
@@ -25,14 +32,9 @@
     +----------+
 
 	#+end_src
-  - Puppet version 3.7.4 [[https://docs.puppetlabs.com/guides/install_puppet/install_el.html][link]]
-  - PuppetDB version 2.2 [[https://docs.puppetlabs.com/puppetdb/2.2/][link]]
-  - Hiera [[https://docs.puppetlabs.com/hiera/1/configuring.html][link]]
-  - Environments [[https://docs.puppetlabs.com/puppet/latest/reference/environments_configuring.html][link]]
-	- r10k [[https://forge.puppetlabs.com/zack/r10k][link]]
 
-** Puppet Code (style guide)
-*** System for configuring machines
+** The Puppet Code
+*** Systems for configuring machines
 	 There were two main ways to deploy the codebase, using roles and profiles, or
 	 using hiera as a node classifier and setting custom facts to control the flow of
 	 the logic, In the end I ended up going with roles and profiles for the following reasons:
