@@ -41,14 +41,13 @@ for filename in glob.glob( C_HTMLPATH + "/*." + C_PROCESSED):
   })
 
 # stage 3 create the post list
-postData = ""
+postData = "<table class=postList>"
 for post in sorted(postIndex, key=lambda p: p['postDate'], reverse=True):
-  postData += "<div class=post>"
-  postData += "<div class=postTitle>" + post['title'] + "</div>"
-  postData += "<div class=postDate>" + post['date'] + "</div>"
-  postData += "</div>"
-
-print postData, postIndex
+  postData += "<tr class=post>"
+  postData += "<td class=postDate>" + time.strftime("%Y &bull; %m &bull; %d", post['postDate']) + "</td>"
+  postData += "<td class=postTitle><a href=./html/" + post['baseName'] + ">" + post['title'] + "</a></td>"
+  postData += "</tr>"
+postData += "</table>"
 
 # stage 4 print out the index.html
 with open('index.html', "w") as f:

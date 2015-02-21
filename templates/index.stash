@@ -1,22 +1,23 @@
 <html>
-		<head>
-			<link rel="stylesheet" href="/css/style.css" type="text/css" />
-		</head>
+	<head>
+		<link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" href="/css/style.css" type="text/css" />
+	</head>
 
 		<body>
-			<div id="container">
+			<div id="indexContainer">
 				<div id=logo><img id="logoImage" src="img/logo.png"></div>
 				<div id=menu>
-					<div class=menuItem>Photography</div>
-					<div class=menuItem>Code</div>
-					<div class=menuItem>Twitter</div>
-					<div class=menuItem>Contact</div>
+					<div class=menuItem><a href="http://analog.smugmug.com">Photography</a></div>
+					<div class=menuItem><a href="https://github.com/analogpixel">Code</a></div>
+					<div class=menuItem><a href="https://twitter.com/analogp1xel">Twitter</a></div>
+					<div class=menuItem><a href="mailto://analog@analogpixel.org">Contact</a></div>
 				</div>
 
 				<div id="postContent">
-					<div id="postList">
+					<center>
 						{{{content}}}
-					</div>
+					</center>
 				</div>
 			</div>
 		</body>

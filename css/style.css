@@ -2,10 +2,11 @@
 		width: 400px;
 }
 
-#container {
+#indexContainer {
 		width: 100%;
 		margin-left: auto;
 		margin-right: auto;
+		background: #fff;
 }
 
 #logoImage {
@@ -21,48 +22,99 @@
 #menu {
 		margin-left: auto;
 		margin-right: auto;
-		width: 600px;
+		text-align: center;
 }
 
-.menuItem {
-		font-size: 1.7em;
+.menuItem, .menuitem a {
+		font-size: 1.3em;
 		font-weight: 900;
 		color: #241c1c;
 		display: inline-block;
-		margin-right: 20px;
+		margin-right: 10px;
+		text-shadow: 0 0 2px #241c1c;
+		text-decoration: none;
+}
+
+.menuitem a:hover {
+
+	  text-decoration: underline;
 }
 
 #postContent {
-		margin-top: 40px;
+		margin-top: 30px;
+		padding-top: 40px;
 		width: 100%;
 		background-color: #241c1c;
 		min-height: 100%;
+		text-align: center;
 }
 
 #postList {
-		width: 500px;
+		padding: 20px;
+}
+
+.post, .post a{
+		font-size: 1em;
+		color: white;
+		margin-bottom: 10px;
+		text-align: center;
+		text-decoration: none;
+		text-shadow: 1px 1px 1px #222;
+}
+
+.post a:hover {
+		text-decoration: underline;
+}
+
+.postDate {
+		margin-right: 20px;
+		color: #fff;
+}
+
+.postTitle {
+		padding: 10px;
+		text-align: right;
+		margin-left: 10px;
+}
+
+#container {
+		width: 100%;
 		margin-left: auto;
 		margin-right: auto;
+		background: #222;
 }
-
-.post {
-		font-size: 2em;
-		font-color: white;
-}
-
 
 #pageContent {
+		background: #eee;
+		font-family: 'Lato', sans-serif;
 		line-height: 1.5;
 		font-size: 18px;
-		color: #241c1c;
+		color: #222;
 		font-weight: 500;
+		width: 75%;
+		margin-left: auto;
+		margin-right: auto;
+		text-rendering: optimizeLegibility;
+		padding-left: 20px;
+		padding-right: 20px;
+}
+
+#pageHeader {
+		float: right;
+}
+
+#pageFooter {
+		float: right;
+}
+.clearFloat {
+		clear: both;
 }
 
 body {
 		padding: 0;
 		margin: 0;
 		background-color: #fff;
-		font-family: Verdana, Geneva, sans-serif;
+		font-family: 'Lato', sans-serif;
 }
 
 a {
@@ -70,7 +122,7 @@ a {
 }
 
 h1,h2,h3,h4 {
-		color: #5f737c;
+		color: #222;
 		font-weight: 700;
 		text-shadow: #5f737c 0px 0px 1px;
 }
