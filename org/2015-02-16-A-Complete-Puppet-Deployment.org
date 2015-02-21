@@ -1,0 +1,900 @@
+#+OPTIONS: ^:nil
+#+AUTHOR: analog
+#+EMAIL: analog@analogpixel.org
+#+TITLE: Puppet Deployment
+#+HTML_HEAD: <style>pre.src {background-color: #303030; color: #e5e5e5;}</style>
+
+* Puppet Deployment overview
+  #+begin_src ditaa :file ../img/puppetOverview.png
+
+    +----------+                         +---------+
+    |          +<---------r10k---------->+         |
+    | puppetd  |                         |  Github |
+    | puppetdb |   +--------+            |         |
+    | hiera    |   |        |            +---------+
+    | r10k     |   |        |
+    |          +<->+ httpd  |            +---------+
+    |          |   |        +<---------->+         |
+    |          |   |        |            | client  |
+    +----+-----+   +--------+            |         |
+         |                               +---------+
+    +----+-----+
+    |          |
+    |  psql    |
+    |          |
+    +----------+
+
+	#+end_src
+  - Puppet version 3.7.4 [[https://docs.puppetlabs.com/guides/install_puppet/install_el.html][link]]
+  - PuppetDB version 2.2 [[https://docs.puppetlabs.com/puppetdb/2.2/][link]]
+  - Hiera [[https://docs.puppetlabs.com/hiera/1/configuring.html][link]]
+  - Environments [[https://docs.puppetlabs.com/puppet/latest/reference/environments_configuring.html][link]]
+	- r10k [[https://forge.puppetlabs.com/zack/r10k][link]]
+
+** Puppet Code (style guide)
+*** System for configuring machines
+	 There were two main ways to deploy the codebase, using roles and profiles, or
+	 using hiera as a node classifier and setting custom facts to control the flow of
+	 the logic, In the end I ended up going with roles and profiles for the following reasons:
+	 - If a group has one type of configuration, hiera as a node classifier works great, but
+		 if groupa has a webserver class and a database class, then it starts to get messier.
+	 - If a group doesn't want puppet changing base configuration on an appliance type of machine,
+		 but you still want puppet to run to at least collect inventory, it's easier and less
+		 error prone, to have an inventory role as opposed to trying to use class inheritance to
+		 override the base class.  Also if the base class gets updated and you don't update the
+		 inherited class, then the machines will get updated.
+	 - Using hiera as a node classifier, puppet will try to apply configuration before
+		 you have all the variables to define it set.  With roles and profiles, puppet
+		 will be able to run fine, but will do nothing.
+
+*** What is a role and profile?
+		Role and profiles ([[http://puppetlabs.com/presentations/designing-puppet-rolesprofiles-pattern][link)]] are an abstraction that allows you to separate your business logic from
+		your puppet code. You accomplish this by creating roles, which are made up of profiles, which
+		are made up of modules.  Each machine will have only one role, and if a machine doesn't quiet
+		fit into a role, then a new role is created.  From a puppet code standpoint roles and profiles
+		look like this:
+
+**** Apply a role to a node
+		 A node will only have one role.  If you find the need to add something specific for a machine
+		 just create a new role.
+     #+begin_src puppet
+     node 'xyz' {
+       include role::groupname::webserver
+     }
+		 #+end_src
+**** Define a role
+		 The roles just contain profiles.  There is nothing special about a role, it is
+		 just another puppet module.
+		 #+begin_src puppet
+		 class role::groupname::webserver {
+			 include profile::webserver
+			 include profile::base
+			 include profile::inventory
+		 #+end_src
+**** Define a Profile
+		 Profiles are just groups of puppet modules combined.
+		 #+begin_src puppet
+		 class profile::webserver {
+			 include modulea
+			 include moduleb
+			 include modulec
+			 class{'ntp': servers => hiera(ntp_server)
+		 }
+		 #+end_src
+**** Directory structure for roles and profiles
+     Within the puppet naming convention each :: indicates a new directory, so if you had
+		 module/modname/manifests/subdir/bob.pp  it would be modname::subdir::bob  and bob.pp would
+		 have a class modname::subdir::bob { }
+		 #+begin_src sh
+       modules
+         role
+           manifests
+             subrole
+               role_name.pp
+                 class role::subrole::role_name { }
+         profile
+           manifests
+             profile_name.pp
+               class profile::profile_name { }
+		 #+end_src
+
+*** Deploying Configuration to nodes
+   The base design will be to use roles and profile as a way to configure machines, and
+	 to use hiera as a node classifier to assign those roles to the machines via their certname.
+	 The node classifier, hiera, will also need to set some top level variables that can be
+	 used by hiera and the modules. these variables are set in the site.pp along with the
+	 directive to have hiera loaded the classes for the node:
+
+ 	 To enable the hiera based node classifier, this configuration:
+	 #+begin_src puppet
+   # load puppet toplevel variables (globals) here
+   $group = hiera('group')
+   $site  = hiera('site')
+
+   # now have hiera load the clases for this machine
+   hiera_include('classes')
+	 #+end_src
+	 was added to the site.pp. To configure each node, create a <certname>.yaml in the
+	 cert branch of the hiera tree with the contents of:
+	 #+begin_src yaml
+	 ---
+   group: localgroupa
+   site: mysite
+
+	 classes:
+		 - role::groupname::webserver
+	 #+end_src
+
+
+** Puppetmaster configuration
+*** Server preconfig
+    #+begin_src sh
+    # install dev tools for the apache module
+    yum groupinstall "Development Tools"
+    chkconfig iptables off
+    service iptables stop
+		#+end_src
+
+*** Puppet master install script (used by vagrant)
+		Since this machine is pre-puppet, puppet can't be used to configure the machine
+		so this is the install script used to get the machine to a point to where it
+		can do a puppet apply to do the rest of the configuration.
+
+		once the basic config is installed, the puppet master will need to start
+		for a few seconds so it can create the CAs that it requires, so there
+		is a line to start ther server, wait 7 seconds, and then shut it down.
+
+		#+begin_src sh :tangle c:/data/pmaster/manifests/masterInstall.sh
+    rpm -ivh http://yum.puppetlabs.com/puppetlabs-release-el-6.noarch.rpm
+    yum install -y puppet-server puppetdb
+    rsync -av /vagrant/manifests/master_puppet.conf /etc/puppet/puppet.conf
+    rsync -av /vagrant/manifests/ps1.sh  /etc/profile.d/
+    # start puppet, let it create the cert it needs then stop it
+    puppet master --verbose --no-daemonize & k=$! && sleep 7 && kill $k
+		#+end_src
+
+*** Puppet manifest for the server
+		The webserver shipped with puppet is rated to handle about 10 nodes, so
+		apache and passenger is used to host the puppetmaster.  The puppetlabs
+		documentation for this can be found [[https://docs.puppetlabs.com/guides/passenger.html][here]].
+
+		All data handling within the modules is done via hiera lookups. Hiera is
+		install by default now with puppet, so all that is needed is to configure
+		hiera.  The full documentation from puppetlabs on hiera can be found [[https://docs.puppetlabs.com/hiera/1/installing.html][here]].
+
+		R10k is a source control program that can checkout your puppet modules from git
+		and place them in the correct directories under /etc/puppet/environments.  Branches
+		in git will be checked out to their own directories within the environments directory.
+		An environment contains all the puppet modules and a complete hiera tree.  R10k is
+		setup to checkout the all branches ever7 5 minutes. For r10k to work correct with puppet,
+		your branch in git must be called production, to do this you need to check the code out via ssh and run:
+		#+begin_src sh
+		git branch -m master production
+		git push origin production
+    # now go into the github interface -> settings -> default branch -> production
+		git push origin :master
+		#+end_src
+		Before checking out the code, make sure [[https://help.github.com/enterprise/2.0/user/articles/generating-ssh-keys/#platform-linux][you have added keys]] to github so it knows
+		who you are:
+		#+begin_src sh
+		[pclient ~ ]$ ssh-keygen -t rsa -C "<YOUR EMAIL HERE>"
+		Generating public/private rsa key pair.
+		Enter file in which to save the key (/home/vagrant/.ssh/id_rsa):
+		Enter passphrase (empty for no passphrase):
+		Enter same passphrase again:
+		Your identification has been saved in /home/vagrant/.ssh/id_rsa.
+		Your public key has been saved in /home/vagrant/.ssh/id_rsa.pub.
+		The key fingerprint is:
+		a3:31:07:c5:02:4c:4a:5c:f8:a3:a5:5b:32:d2:2d:fc <email here>
+		The key's randomart image is:
+		+--[ RSA 2048]----+
+		| ..=+. ..        |
+		| .o.. ...        |
+		|  ..  ..         |
+		|    +  .         |
+		| o = .o S        |
+		|. O o  = .       |
+		| . B  .          |
+		|  . E            |
+		|                 |
+		+-----------------+
+		[pclient ~ ]$ ssh-agent bash
+		[pclient ~ ]$ ssh-add ~/.ssh/id_rsa
+		Enter passphrase for /home/vagrant/.ssh/id_rsa:
+		Identity added: /home/vagrant/.ssh/id_rsa (/home/vagrant/.ssh/id_rsa)
+		[pclient ~ ]$ git clone <PUPPET SSH REPO URL>
+		#+end_src
+    After you create your keys, login to github, go to settings -> SSH keys, and
+		add the .pub public key created above.
+
+		What follows is the complete puppet manifest needed to install all the components outlined above:
+
+		#+begin_src puppet :tangle c:/data/pmaster/manifests/pmaster.pp
+      package {["httpd","httpd-devel","mod_ssl","ruby-devel","rubygems","gcc","libcurl-devel","openssl-devel","zlib-devel","apr-devel","apr-util-devel"]:
+        notify => Exec['install_passenger_gem'],
+      }
+
+
+      # puppetdb configuration
+      #                                        __       __  __
+      #                                       /\ \__   /\ \/\ \
+      #  _____   __  __  _____   _____      __\ \ ,_\  \_\ \ \ \____
+      # /\ '__`\/\ \/\ \/\ '__`\/\ '__`\  /'__`\ \ \/  /'_` \ \ '__`\
+      # \ \ \L\ \ \ \_\ \ \ \L\ \ \ \L\ \/\  __/\ \ \_/\ \L\ \ \ \L\ \
+      #  \ \ ,__/\ \____/\ \ ,__/\ \ ,__/\ \____\\ \__\ \___,_\ \_,__/
+      #   \ \ \/  \/___/  \ \ \/  \ \ \/  \/____/ \/__/\/__,_ /\/___/
+      #    \ \_\           \ \_\   \ \_\
+      #     \/_/            \/_/    \/_/
+      #
+      package {["puppetdb", "puppet", "puppetdb-terminus"]:
+      }
+
+      package {"postgresql-server":
+        notify => Exec['configurepostgresql'],
+      }
+
+      service {"postgresql":
+        ensure => "running",
+        enable => "true",
+        require => Package['postgresql-server'],
+      }
+
+      exec {'configurepostgresql':g
+        command     => "/bin/bash /vagrant/manifests/configurepsql.sh",
+        path        => ["/bin","/usr/bin","/sbin","/usr/sbin"],
+        refreshonly => true,
+      }
+
+      service {"puppetdb":
+        ensure  => "running",
+        enable  => "true",
+        require => [Package['puppetdb'],File['/etc/puppet/puppetdb.conf'], Exec['configSSLpuppetdb'] ],
+      }
+
+      exec {'configSSLpuppetdb':
+        command     => "/usr/sbin/puppetdb ssl-setup",
+        path        => ["/bin","/usr/bin","/sbin","/usr/sbin"],
+      }
+
+      file {"/etc/puppetdb/conf.d/database.ini":
+        source => "/vagrant/manifests/database.ini",
+        ensure => file,
+        owner  => puppetdb,
+        group  => puppetdb,
+        mode   => 640,
+        require => Package['puppetdb'],
+      }
+
+      file {"/etc/puppet/puppetdb.conf":
+        source => "/vagrant/manifests/puppetdb.conf",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 755,
+        notify => Exec['configSSLpuppetdb'],
+      }
+
+      file {"/etc/puppet/routes.yaml":
+        source => "/vagrant/manifests/routes.yaml",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 755,
+      }
+
+      ##### BEGIN r10k install section ######
+      #
+      #          _     __   __
+      #        /' \  /'__`\/\ \
+      #  _ __ /\_, \/\ \/\ \ \ \/'\
+      # /\`'__\/_/\ \ \ \ \ \ \ , <
+      # \ \ \/   \ \ \ \ \_\ \ \ \\`\
+      #  \ \_\    \ \_\ \____/\ \_\ \_\
+      #   \/_/     \/_/\/___/  \/_/\/_/
+      #
+      exec {'r10kinstall':
+        command     => "/usr/bin/puppet module install zack-r10k",
+        creates     => "/etc/r10k.yaml",
+        path        => ["/bin","/usr/bin","/sbin","/usr/sbin"],
+        require     => [ Package['puppet'], File['/tmp/r10kinstall.pp']],
+        notify      => Exec['installr10k'],
+      }
+
+      file {"/tmp/r10kinstall.pp":
+        content => "class {'r10k': remote => '<URL TO YOUR GIT PUPPET MODULES>', }",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 750,
+      }
+
+      exec {'configureGit':
+        environment => ["HOME=/root"],
+        command     => "/usr/bin/git config --global http.sslVerify false",
+        path        => ["/bin","/usr/bin","/sbin","/usr/sbin"],
+        refreshonly => true,
+      }
+
+      exec {'installr10k':
+        command     => "/usr/bin/puppet apply /tmp/r10kinstall.pp",
+        path        => ["/bin","/usr/bin","/sbin","/usr/sbin"],
+        refreshonly => true,
+        notify      => Exec['configureGit'],
+      }
+
+      # every 5 min checkout new source, using array instead of */5
+      # to ensure it works with any cron deamon
+      cron {"r10k":
+        command => "/usr/bin/r10k deploy environment > /dev/null 2>&1",
+        user    => root,
+        minute  => [0,5,10,15,20,25,30,35,40,45,50,55],
+      }
+      ####### END r10k install section ######
+
+
+      ##### BEGIN hiera install section ######
+      #  __
+      # /\ \      __
+      # \ \ \___ /\_\     __   _ __    __
+      #  \ \  _ `\/\ \  /'__`\/\`'__\/'__`\
+      #   \ \ \ \ \ \ \/\  __/\ \ \//\ \L\.\_
+      #    \ \_\ \_\ \_\ \____\\ \_\\ \__/.\_\
+      #     \/_/\/_/\/_/\/____/ \/_/ \/__/\/_/
+      #
+      #
+      package {"hiera":}
+
+      # this is were hiera defaults to pointing
+      file {"/etc/hiera.yaml":
+        target => "/etc/puppet/hiera.yaml",
+        ensure => link,
+      }
+
+      file {"/etc/puppet/hiera.yaml":
+        source => "/vagrant/manifests/hiera.yaml",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 755,
+      }
+      ####### END hiera install section ######
+
+
+      ##### BEGIN puppetmaster install section ######
+      #                                        __
+      #                                       /\ \__
+      #  _____   __  __  _____   _____      __\ \ ,_\
+      # /\ '__`\/\ \/\ \/\ '__`\/\ '__`\  /'__`\ \ \/
+      # \ \ \L\ \ \ \_\ \ \ \L\ \ \ \L\ \/\  __/\ \ \_
+      #  \ \ ,__/\ \____/\ \ ,__/\ \ ,__/\ \____\\ \__\
+      #   \ \ \/  \/___/  \ \ \/  \ \ \/  \/____/ \/__/
+      #    \ \_\           \ \_\   \ \_\
+      #     \/_/            \/_/    \/_/
+      #
+      service {"httpd":
+        ensure => "running",
+        enable => "true",
+        require => Package['httpd'],
+      }
+
+      # these requests will be handled through httpd
+      service {"puppetmaster":
+        ensure => "stopped",
+        enable => "false",
+      }
+
+      # install passenger to host puppetmaster in apache
+      exec {'install_passenger_gem':
+        command     => "/usr/bin/gem install rack && /usr/bin/gem install passenger -v 4.0.59",
+        path        => ["/bin","/usr/bin","/sbin","/usr/sbin"],
+        refreshonly => true,
+        notify      => Exec['install_passenger'],
+      }
+
+      exec {'install_passenger':
+        command     => "/usr/bin/passenger-install-apache2-module -a",
+        creates     => "/usr/lib/ruby/gems/1.8/gems/passenger-4.0.59/buildout/apache2/mod_passenger.so",
+        path        => ["/bin","/usr/bin","/sbin","/usr/sbin"],
+        require     => [ Exec['install_passenger_gem'], Package['rubygems'] ],
+      }
+
+      # create the directory for the puppet server rack application
+      # to live in
+      file {["/usr/share/puppet/rack",
+             "/usr/share/puppet/rack/puppetmasterd",
+             "/usr/share/puppet/rack/puppetmasterd/public",
+             "/usr/share/puppet/rack/puppetmasterd/tmp",
+             ]:
+               ensure => directory,
+               owner  => puppet,
+               group  => puppet,
+               mode   => 755,
+      }
+
+      # Rack application configuration, installed via puppet install
+      file {"/usr/share/puppet/rack/puppetmasterd/config.ru":
+        source => "/usr/share/puppet/ext/rack/config.ru",
+        ensure => file,
+        owner  => puppet,
+        group  => puppet,
+        mode   => 750,
+        require => [ File['/usr/share/puppet/rack/puppetmasterd'], File['/etc/puppet/puppet.conf']],
+        notify => Service['httpd'],
+      }
+
+      # Configuration for apache to run the rack application
+      file {"/etc/httpd/conf.d/puppetmaster.conf":
+        source => "/vagrant/manifests/httpd_puppet.conf",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 750,
+        require => Package['httpd'],
+      }
+
+      # keep the perms open on puppet.conf so the apache
+      # proc running can read it
+      file {"/etc/puppet/puppet.conf":
+        source => "/vagrant/manifests/master_puppet.conf",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 755,
+      }
+
+      file {"/etc/puppet/environments/production":
+        ensure => directory,
+        owner  => puppet,
+        group  => puppet,
+        mode   => 755,
+      }
+
+      # we are using environments so get rid of these dirs
+      # so they don't cause any confusion
+      file {["/etc/puppet/manifests","/etc/puppet/modules","/etc/puppet/environments/example_env"]:
+        ensure => absent,
+        force => true,
+      }
+
+      # just used for testing
+      host{"pmaster": ip=> "192.168.2.2"}
+      host{"pclient": ip=> "192.168.2.3"}
+      host{"pclient2": ip=> "192.168.2.4"}
+		#+end_src
+
+*** puppet.conf
+    Puppet configuration reference can be found [[https://docs.puppetlabs.com/references/3.7.latest/configuration.html][here]]
+
+		- *dns_alt_names* : set this to anything that the master could ever resolve to.  These names
+			are added to the certificate of the puppetmaster. [[https://docs.puppetlabs.com/references/3.7.latest/configuration.html#dnsaltnames][doc]]
+		- *certname* : what this machine is called and the name of the cert [[https://docs.puppetlabs.com/references/3.7.latest/configuration.html#certname][doc]]
+		- *basemodulepath*: note that it contains an $envrionment variable. The default env will
+			be production. Since r10k will be used, only the base directory will need to be created,
+			the rest will be filled in by r10k checkouts. [[https://docs.puppetlabs.com/references/3.7.latest/configuration.html#basemodulepath][doc]]
+		- *autosign* : automatically sign certs as clients checkin. [[https://docs.puppetlabs.com/references/3.7.latest/configuration.html#autosign][doc]]
+		- *reports* : which report handler to use. [[https://docs.puppetlabs.com/references/3.7.latest/configuration.html#reports][doc]]
+    - *environment* : which environment to use by default, more information on
+			environments can be found [[https://docs.puppetlabs.com/puppet/3.7/reference/environments_configuring.html][here]]
+
+		#+begin_src any-ini :tangle c:/data/pmaster/manifests/master_puppet.conf
+      [main]
+          dns_alt_names =  pmaster,pmaster1,puppet,puppet.dns.com
+          certname = pmaster
+          logdir = /var/log/puppet
+          rundir = /var/run/puppet
+          disable_warnings = deprecations
+
+      [master]
+          autosign = true
+          storeconfigs = true
+          storeconfigs_backend = puppetdb
+          environmentpath = $confdir/environments
+          reports = store,puppetdb
+          reportdir = /var/lib/puppet/reports
+
+      [agent]
+          classfile   = $vardir/classes.txt
+          localconfig = $vardir/localconfig
+          server      = pmaster
+		#+end_src
+
+*** puppetdb.conf
+		#+begin_src any-ini :tangle c:/data/pmaster/manifests/puppetdb.conf
+      [main]
+        server = pmaster
+        port = 8081
+
+      [database]
+        classname = org.postgresql.Driver
+        subprotocol = postgresql
+        subname = //localhost:5432/puppetdb
+        username = puppetdb
+        password = p4pp4tdb
+		#+end_src
+
+*** database.ini
+		#+begin_src any-ini :tangle c:/data/pmaster/manifests/database.ini
+      [database]
+        classname = org.postgresql.Driver
+        subprotocol = postgresql
+        subname = //localhost:5432/puppetdb
+        username = puppetdb
+        password = <YOUR PUPPETDB PASSWORD>
+		#+end_src
+
+*** Configure postgresql
+		#+begin_src sh :tangle c:/data/pmaster/manifests/configurepsql.sh
+      #!/bin/bash
+
+      service postgresql initdb
+      service postgresql start
+      sudo -u postgres psql -c "CREATE ROLE puppetdb with LOGIN PASSWORD '<YOUR PUPPETDB PASSWORD>'"
+      sudo -u postgres createdb -E UTF8 -O puppetdb puppetdb
+
+      echo "
+      local  all         postgres                          ident
+      local  all         all                               md5
+      host   all         all         127.0.0.1/32          md5
+      host   all         all         ::1/128               md5
+      host   puppetdb    puppetdb    10.0.2.0/24           md5
+      host   puppetdb    puppetdb    192.168.0.0/16        md5
+      " > /var/lib/pgsql/data/pg_hba.conf
+
+      /bin/true
+      exit
+		#+end_src
+
+*** routes.yaml
+    #+begin_src yaml :tangle c:/data/pmaster/manifests/routes.yaml
+      ---
+      master:
+        facts:
+          terminus: puppetdb
+          cache: yaml
+		#+end_src
+
+*** Apache configuration for puppet server :VISIBILITY: overview
+	  - SSLCert* directives need to have the correct path to the pem files for the server.
+	  - LoadModule needs to point to the correct version of mod_passenger.so
+    - PassengerRoot needs to point to the correct value
+
+		#+begin_src conf :tangle c:/data/pmaster/manifests/httpd_puppet.conf
+		# RHEL/CentOS:
+		LoadModule passenger_module /usr/lib/ruby/gems/1.8/gems/passenger-4.0.59/buildout/apache2/mod_passenger.so
+		PassengerRoot /usr/lib/ruby/gems/1.8/gems/passenger-4.0.59
+		PassengerRuby /usr/bin/ruby
+
+		# And the passenger performance tuning settings:
+		# Set this to about 1.5 times the number of CPU cores in your master:
+		PassengerMaxPoolSize 12
+		# Recycle master processes after they service 1000 requests
+		PassengerMaxRequests 1000
+		# Stop processes if they sit idle for 10 minutes
+		PassengerPoolIdleTime 600
+
+		Listen 8140
+		<VirtualHost *:8140>
+				# Make Apache hand off HTTP requests to Puppet earlier, at the cost of
+				# interfering with mod_proxy, mod_rewrite, etc. See note below.
+				PassengerHighPerformance On
+
+				SSLEngine On
+
+				# Only allow high security cryptography. Alter if needed for compatibility.
+				SSLProtocol ALL -SSLv2 -SSLv3
+				SSLCipherSuite EDH+CAMELLIA:EDH+aRSA:EECDH+aRSA+AESGCM:EECDH+aRSA+SHA384:EECDH+aRSA+SHA256:EECDH:+CAMELLIA256:+AES256:+CAMELLIA128:+AES128:+SSLv3:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!DSS:!RC4:!SEED:!IDEA:!ECDSA:kEDH:CAMELLIA256-SHA:AES256-SHA:CAMELLIA128-SHA:AES128-SHA
+				SSLHonorCipherOrder     on
+
+				SSLCertificateFile      /etc/puppet/ssl/certs/pmaster.pem
+				SSLCertificateKeyFile   /etc/puppet/ssl/private_keys/pmaster.pem
+				SSLCertificateChainFile /etc/puppet/ssl/ca/ca_crt.pem
+				SSLCACertificateFile    /etc/puppet/ssl/ca/ca_crt.pem
+				SSLCARevocationFile     /etc/puppet/ssl/ca/ca_crl.pem
+				#SSLCARevocationCheck 	chain
+				SSLVerifyClient         optional
+				SSLVerifyDepth          1
+				SSLOptions              +StdEnvVars +ExportCertData
+
+				# Apache 2.4 introduces the SSLCARevocationCheck directive and sets it to none
+			  # which effectively disables CRL checking. If you are using Apache 2.4+ you must
+				# specify 'SSLCARevocationCheck chain' to actually use the CRL.
+
+				# These request headers are used to pass the client certificate
+				# authentication information on to the puppet master process
+				RequestHeader set X-SSL-Subject %{SSL_CLIENT_S_DN}e
+				RequestHeader set X-Client-DN %{SSL_CLIENT_S_DN}e
+				RequestHeader set X-Client-Verify %{SSL_CLIENT_VERIFY}e
+
+				DocumentRoot /usr/share/puppet/rack/puppetmasterd/public
+
+				<Directory /usr/share/puppet/rack/puppetmasterd/>
+					Options None
+					AllowOverride None
+					# Apply the right behavior depending on Apache version.
+					<IfVersion < 2.4>
+						Order allow,deny
+						Allow from all
+					</IfVersion>
+					<IfVersion >= 2.4>
+						Require all granted
+					</IfVersion>
+				</Directory>
+
+				ErrorLog /var/log/httpd/puppet-server.example.com_ssl_error.log
+				CustomLog /var/log/httpd/puppet-server.example.com_ssl_access.log combined
+		</VirtualHost>
+		#+end_src
+
+*** Hiera configuration
+		Hiera is a hierarchy lookup mechanism for variables.  This removes the need
+		for nested if statements and adding logic to your puppet modules.  This will
+		also allow you to allow people that don't fully understand puppet to make changes
+		like changing passwords, or ntp server ips.
+
+		Hiera will be using a yaml backend stored the environment.  YAML is picky, so
+		before you start changing configurations, you might want to read the
+		the [[http://www.yaml.org/YAML_for_ruby.html][YAML reference]].
+
+		#+begin_src yaml :tangle c:/data/pmaster/manifests/hiera.yaml
+      ---
+      :backends:
+        - yaml
+
+      :yaml:
+        :datadir: /etc/puppet/environments/%{environment}/hieradata
+
+      :hierarchy:
+        - "cert/%{::clientcert}"
+        - "group/%{::group}"
+        - "site/%{::site}"
+        - "os/%{::osfamily}"
+        - common
+
+		#+end_src
+
+		The important part of the hiera file is the hierachy section; this tells
+		hiera the search order to go looking for your variable.  The hierachy,
+		with a yaml backend, is a directory structure defined by the hierachy
+		setting in the hiera.yaml file.  By using puppet facts, you can pick
+		variables dynamically based on the facts on the client machines.  For
+		example, if you had a fact called site, you could change a variable
+		base on the site the machine reports from.
+
+** Puppet Test client configuration
+*** puppet.conf for rhel client machines
+		#+begin_src any-ini :tangle c:/data/pmaster/manifests/client_puppet.conf
+			[main]
+				certname = pclient
+        disable_warnings = deprecations
+
+			[agent]
+				server = pmaster
+				environment = production
+				report = true
+
+		#+end_src
+*** puppet.conf for debian client machines
+		#+begin_src any-ini :tangle c:/data/pmaster/manifests/client2_puppet.conf
+			[main]
+				certname = pclient2
+        disable_warnings = deprecations
+
+			[agent]
+				server = pmaster
+				environment = production
+				report = true
+
+		#+end_src
+
+
+*** puppet manifest to configure rhel client
+	  #+begin_src puppet :tangle c:/data/pmaster/manifests/pclient.pp
+      host{"pmaster": ip=> "192.168.2.2"}
+      host{"pclient": ip=> "192.168.2.3"}
+      host{"pclient2": ip=> "192.168.2.4"}
+
+      file {"/etc/puppet/puppet.conf":
+        source => "/vagrant/manifests/client_puppet.conf",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 750,
+      }
+
+      file {"/etc/profile.d/ps1.sh":
+        source => "/vagrant/manifests/ps1.sh",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 755,
+      }
+
+
+      file {["/etc/facter/","/etc/facter/facts.d"]:
+        ensure => directory,
+        owner  => root,
+        group  => root,
+        mode   => 750,
+      }
+
+      file {"/etc/facter/facts.d/inventory.txt":
+        content => "site=co",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 750,
+        require => File["/etc/facter/facts.d"],
+      }
+
+
+		#+end_src
+
+*** puppet manifest to configure debian client
+	  #+begin_src puppet :tangle c:/data/pmaster/manifests/pclient2.pp
+      host{"pmaster": ip=> "192.168.2.2"}
+      host{"pclient": ip=> "192.168.2.3"}
+      host{"pclient2": ip=> "192.168.2.4"}
+
+      file {"/etc/puppet/puppet.conf":
+        source => "/vagrant/manifests/client2_puppet.conf",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 750,
+      }
+
+      file {"/etc/profile.d/ps1.sh":
+        source => "/vagrant/manifests/ps1.sh",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 755,
+      }
+
+
+      file {["/etc/facter/","/etc/facter/facts.d"]:
+        ensure => directory,
+        owner  => root,
+        group  => root,
+        mode   => 750,
+      }
+
+      file {"/etc/facter/facts.d/inventory.txt":
+        content => "site=co",
+        ensure => file,
+        owner  => root,
+        group  => root,
+        mode   => 750,
+        require => File["/etc/facter/facts.d"],
+      }
+
+
+		#+end_src
+
+** Vagrant configuration
+	 Configuration for test machines
+	 #+begin_src ruby :tangle c:/data/pmaster/Vagrantfile
+     # -*- mode: ruby -*-
+     # vi: set ft=ruby :
+
+     Vagrant.configure(2) do |config|
+
+       config.vm.define "pmaster" do |pmaster|
+         pmaster.vm.box_url = "https://github.com/2creatives/vagrant-centos/releases/download/v6.4.2/centos64-x86_64-20140116.box"
+         pmaster.vm.box = "centos6_min"
+         pmaster.vm.hostname = "pmaster"
+         pmaster.vm.network "private_network", ip: "192.168.2.2"
+         pmaster.vm.provision "shell", path: "c:/data/pmaster/manifests/masterInstall.sh"
+         pmaster.vm.provision "puppet" , manifest_file: "pmaster.pp"
+       end
+
+       config.vm.define "pclient" do |pclient|
+         pclient.vm.box_url = "https://github.com/2creatives/vagrant-centos/releases/download/v6.4.2/centos64-x86_64-20140116.box"
+         pclient.vm.box = "centos6_min"
+         pclient.vm.hostname = "pclient"
+         pclient.vm.network "private_network", ip: "192.168.2.3"
+         pclient.vm.provision "shell", inline: "rpm -ivh http://yum.puppetlabs.com/puppetlabs-release-el-6.noarch.rpm"
+         pclient.vm.provision "shell", inline: "yum install -y puppet"
+         pclient.vm.provision "puppet" , manifest_file: "pclient.pp"
+       end
+
+       config.vm.define "pclient2" do |pclient2|
+         pclient2.vm.box_url = "https://dl.dropbox.com/u/14741389/vagrantboxes/lucid64-lamp.box"
+         pclient2.vm.box = "ubuntu"
+         pclient2.vm.hostname = "pclient2"
+         pclient2.vm.network "private_network", ip: "192.168.2.4"
+         pclient2.vm.provision "shell", inline: "cd /tmp && wget https://apt.puppetlabs.com/puppetlabs-release-precise.deb"
+         pclient2.vm.provision "shell", inline: "cd /tmp && dpkg -i puppetlabs-release-precise.deb"
+         pclient2.vm.provision "shell", inline: "apt-get update"
+         pclient2.vm.provision "shell", inline: "dpkg --purge facter hiera puppet puppet-common puppetlabs-release"
+         pclient2.vm.provision "shell", inline: "apt-get -y install puppet"
+         pclient2.vm.provision "puppet" , manifest_file: "pclient2.pp"
+       end
+     end
+
+	 #+end_src
+
+** Other Configs
+*** Shell configuration
+		When moving into production update the shell to have a red background on the master
+		so you know when you are on it.
+		#+begin_src sh :tangle c:/data/pmaster/manifests/ps1.sh
+    # set the default prompt
+    export PS1='\e[45m\e[1;37m[`hostname` \w ]\$ \e[0m'
+		#+end_src
+    The configuration for production (red background with the hostname spelled out)
+		#+begin_src sh
+    export PS1='\e[41m\e[1;97m[pmaster \w ]\$ \e[0m'
+		#+end_src
+
+** Errors
+*** Could not autoload puppet/indirector/facts/active_record: no such file to load -- active_record
+		Seems to be a ruby issue with active record, fixed by using puppetdb
+*** PuppetDB at pmaster:8081: Connection refused - connect(2)
+		The puppetdb ssl cert configuration had run yet: puppetdb ssl-setup
+*** Dashboard not reachable from outside the master machine
+		edit /etc/puppetdb/jetty.ini and add a host entry for the hostname instead of localhost
+		then connect to it: http://192.168.2.2:8080/dashboard/index.html
+*** GIT:  SSL certificate problem: self signed certificate in certificate chain
+		git config --global http.sslVerify false
+*** Warning: Server hostname '<HOSTNAME>' did not match server certificate; expected one of <LIST of DNSALTS>
+		you changed the hostname of the puppet master, but the hostname was not listed in the dns_alt_names of puppet.conf when you installed it
+		this will require creating a new cert by hand and add the dns alt names to it.
+*** Invalid facter option(s) type
+		This may indicate you have an old version of puppet and a new puppet installed in different locations.
+*** Exec[sudo-syntax-check for file
+    Problem with sudo syntax; make sure that the username is in the content section
+
+** Testing new puppet code
+	 To test new puppet code (before pushing it to production branch) the process is:
+	 - check out the production branch from git
+	 - branch ( git checkout -b <mybranchname>
+	 - make your changes and checkin your branch (git push origin <mybranchname>
+	 - login to a test machine and run: puppet apply --environment <mybranchname>
+   - continue above two steps until you are happy with your changes.
+   - when ready to push to production, put in a change request and get it approved
+   - merge your changes on <mybranchname> with production (git checkout production; git merge <mybranchname>; git commit -a)
+	 - push your changes. (git push origin production)
+   - delete the remote branch (git push origin :<mybranchname>
+
+** Howto rename a puppet master
+	 Assuming you installed the master with the dnsaltname already, the rename consists of:
+	 - update networking configuration, dns, hosts files
+	 - change the certname in /etc/puppet/puppet.conf
+   - change /etc/puppet/puppetdb.conf to point to the new hostname
+	 - run: service httpd restart
+	 - run: puppetdb ssl-setup
+	 - run: service puppetdb restart
+   - make sure clients /etc/puppet/puppet.conf is pointing to new server
+
+** Logs
+	 - /var/log/puppetdb/puppetdb.log : log file for puppetdb
+	 - /var/log/messags : log file for puppetmaster
+   - /var/lib/puppetdb/mq/discarded : this directory contains errors, and can be purged **
+
+** Debugging
+   - find out where the manifest file is for an environment
+		 puppet config print manifest --section master --environment production
+   - make sure the postgresql database is configured for puppetdb
+		 #+begin_src sh
+		 psql -h localhost puppetdb puppetdb
+		 #+end_src
+   - to view the postgresql database:
+		 #+begin_src sh
+		 sudo -u postgres psql
+		 \list
+		 \connect puppetdb
+		 SELECT table_schema,table_name FROM information_schema.tables ORDER BY table_schema,table_name;
+		 \dt
+     \d
+		 #+end_src
+   - what is the certname of a client?
+     puppet config print certname
+
+** Links
+	 - [[https://docs.puppetlabs.com/puppet/3.7/reference/lang_visual_index.html][The puppet language]]
+	 - [[http://www.network-science.de/ascii/][banner text]]
+   - [[https://help.github.com/enterprise/2.0/user/articles/generating-ssh-keys/#platform-linux][Configure ssh for git]]
+	 - [[http://www.dinopass.com/][Create passwords]]
+   - [[https://docs.puppetlabs.com/puppet/latest/reference/config_important_settings.html#settings-for-puppet-master-servers][Puppet masters conf settings]]
+   - [[https://docs.puppetlabs.com/puppetdb/latest/api/query/v2/nodes.html][puppetdb api]] : curl http://localhost:8080/v2/nodes/pmaster/facts/uptime

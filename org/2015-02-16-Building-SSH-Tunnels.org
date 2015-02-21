@@ -1,0 +1,122 @@
+#+OPTIONS: ^:nil
+#+AUTHOR: Analog
+#+EMAIL: analog@analogpixel.org
+#+TITLE: Configuring ssh tunnels
+#+HTML_HEAD: <style>pre.src {background-color: #303030; color: #e5e5e5;}</style>
+
+* Configuring ssh tunnels
+
+#+begin_src ditaa :file ../img/sshOverview.png :cmdline -r
+
+  +------------+         +-------------+        +--------------+
+  |            |         |             |        |              |
+  |            |         |             |        |              |
+  |  source    +-------->|    HOP      +------->|   dest       |
+  |    m1      |         |     m2      |        |    m3        |
+  |            |         |             |        |              |
+  +-----+------+         +-------------+        +--------------+
+        ^                                              ^
+        +--------------FIREWALL BLOCK------------------+
+
+#+end_src
+
+In this example we want to get from m1 to m3 through m2.  To test this
+situation, a firewall rule is added blocking access from m1 to m3 directly.
+A ssh tunnel is then established:
+#+begin_src sh :tangle c:/data/sshTun/startTun1.sh
+ssh -N -L 8050:m3:22 test@m2
+#+end_src
+and then by running:
+#+begin_src sh
+ssh test@localhost -p 8050
+#+end_src
+A connection to m3 is made
+
+** Explanation of command
+   - *-N* Do not execute a remote command.  This is useful for just forward ports.
+	 - *-L* begin a bind configuration
+     - *8050* this is the port on m1 that you'll connect to to go through the tunnel.
+		 - *m3* this is the machine you want the end of the tunnel to point at. So in the
+		   above example, when the tunnel is initiated, m2 will be pointing at m3
+		 - *22* this is the port you want the tunnel to attached to.  So in the above
+			 example, when the tunnel is initiated, m2 will be pointing at port 22 on m3.
+
+** Running an rsync through the tunnel
+	 To run an rsync through the tunnel you'd run:
+	 #+begin_src sh
+   rsync -av --rsh='ssh -p 8050' /etc/passwd test@localhost:/tmp
+	 #+end_src
+   When connection through the tunnel, remember that you bound the interface to localhost
+	 and not the hostname.  So make sure to use localhost unless you setup the tunnel
+	 to use the hostname.
+
+	 test@localhost where test is the user on the remote machine, and localhost is the machine you ran the ssh command from.
+
+** Puppet Configuration
+*** m1
+#+begin_src puppet :tangle c:/data/sshTun/manifests/m1.pp
+  host {"m1": ip => "192.168.1.2"}
+  host {"m2": ip => "192.168.1.3"}
+  host {"m3": ip => "192.168.1.4", notify=> Exec['ip'] }
+  user {"test": ensure=> present, password=> '$6$hgVuHw5O$IGBSSvISCW.omRQC1CmbN1hoP9918.GkkZ/MNepyxMa16i.GyiYpWjuxme/2H1nqZ3WZbWv2.cr0psUGEdOCI/' }
+
+  exec{"ip":
+    command => "/sbin/iptables -A OUTPUT -d m3 -j DROP",
+    refreshonly => true
+  }
+
+#+end_src
+*** m2
+#+begin_src puppet :tangle c:/data/sshTun/manifests/m2.pp
+host {"m1": ip => "192.168.1.2"}
+host {"m2": ip => "192.168.1.3"}
+host {"m3": ip => "192.168.1.4"}
+user {"test": ensure=> present, password=> '$6$hgVuHw5O$IGBSSvISCW.omRQC1CmbN1hoP9918.GkkZ/MNepyxMa16i.GyiYpWjuxme/2H1nqZ3WZbWv2.cr0psUGEdOCI/' }
+#+end_src
+*** m3
+#+begin_src puppet :tangle c:/data/sshTun/manifests/m3.pp
+host {"m1": ip => "192.168.1.2"}
+host {"m2": ip => "192.168.1.3"}
+host {"m3": ip => "192.168.1.4"}
+user {"test": ensure=> present, password=> '$6$hgVuHw5O$IGBSSvISCW.omRQC1CmbN1hoP9918.GkkZ/MNepyxMa16i.GyiYpWjuxme/2H1nqZ3WZbWv2.cr0psUGEdOCI/' }
+#+end_src
+
+** Vagrant configuration
+	Configuration for test machines
+	#+begin_src ruby :tangle c:/data/sshTun/Vagrantfile
+    # -*- mode: ruby -*-
+    # vi: set ft=ruby :
+
+    Vagrant.configure(2) do |config|
+
+      config.vm.define "m1" do |m1|
+        m1.vm.box_url = "http://goo.gl/8kWkm"
+        m1.vm.box = "ubuntu"
+        m1.vm.hostname = "m1"
+        m1.vm.network "private_network", ip: "192.168.1.2"
+        m1.vm.provision "puppet" , manifest_file: "m1.pp"
+      end
+
+      config.vm.define "m2" do |m2|
+        m2.vm.box_url = "http://goo.gl/8kWkm"
+        m2.vm.box = "ubuntu"
+        m2.vm.hostname = "m2"
+        m2.vm.network "private_network", ip: "192.168.1.3"
+        m2.vm.provision "puppet" , manifest_file: "m2.pp"
+      end
+
+      config.vm.define "m3" do |m3|
+        m3.vm.box_url = "http://goo.gl/8kWkm"
+        m3.vm.box = "ubuntu"
+        m3.vm.hostname = "m3"
+        m3.vm.network "private_network", ip: "192.168.1.4"
+        m3.vm.provision "puppet" , manifest_file: "m3.pp"
+      end
+
+    end
+
+	#+end_src
+
+
+** links
+   - [[http://www.augustcouncil.com/~tgibson/tutorial/tunneling_tutorial.html][An illustrated guide]]
