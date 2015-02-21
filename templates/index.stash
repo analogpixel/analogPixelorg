@@ -1,0 +1,23 @@
+<html>
+		<head>
+			<link rel="stylesheet" href="/css/style.css" type="text/css" />
+		</head>
+
+		<body>
+			<div id="container">
+				<div id=logo><img id="logoImage" src="img/logo.png"></div>
+				<div id=menu>
+					<div class=menuItem>Photography</div>
+					<div class=menuItem>Code</div>
+					<div class=menuItem>Twitter</div>
+					<div class=menuItem>Contact</div>
+				</div>
+
+				<div id="postContent">
+					<div id="postList">
+						{{{content}}}
+					</div>
+				</div>
+			</div>
+		</body>
+</html>

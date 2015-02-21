@@ -1,32 +1,13 @@
 <html>
 		<head>
 			<link rel="stylesheet" href="../css/style.css" type="text/css" />
-			<script src="/js/jq.js"></script>
-			<script src="/js/snap.js"></script>
-			<script src="/js/icon.js"></script>
-			<script src="/js/iconLoad.js"></script>
 		</head>
 
 		<body>
-		<div id="container">
-
-				<div id="col1">
-					<div id=sidebar>
-						<div class=svgContainer><a href="mailto:analog@analogpxixel.org"><svg viewbox="0 0 40 40" id=mailIcon ></svg></a></div>
-						<div class=svgContainer><a href="https://github.com/analogpixel"><svg viewbox="0 0 40 40" id=githubIcon></svg></a></div>
-						<div class=svgContainer><a href="https://twitter.com/analogp1xel"><svg viewbox="0 0 40 40" id=twitterIcon></svg></a></div>
-						<div class=svgContainer><a href="http://analog.smugmug.com"><svg viewbox="0 0 40 40" id=smugIcon></svg></a></div>
-						<br><br>
-						{{{sidebar}}}
-					</div>
-				</div>
-
-				<div id="col2" >
-						<div id=pageContent>
-								{{{content}}}
-						</div>
-				</div>
-
-		</div>
+			<div id="container">
+				<div id="header"></div>
+				<div id=pageContent>{{{content}}}</div>
+				<div id="footer"></div>
+			</div>
 		</body>
 </html>

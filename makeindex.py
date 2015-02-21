@@ -14,46 +14,42 @@ config = ConfigParser.SafeConfigParser()
 
 if os.path.isfile("makeindex.cfg"):
   config.read('makeindex.cfg')
-  C_HTMLPATH      = config.get('main', 'htmlPath')
-  C_TEMPLATE_FILE = config.get('main','template')
-  C_TEMPLATE      = open(C_TEMPLATE_FILE).read()
-  C_UNPROCESSED   = config.get('main','unprocessed')
-  C_PROCESSED     = config.get('main','processed')
+  C_HTMLPATH           = config.get('main', 'htmlPath')
+  C_TEMPLATE_FILE      = config.get('main','template')
+  C_INDEXTEMPLATE_FILE = config.get('main','indextemplate')
+  C_TEMPLATE           = open(C_TEMPLATE_FILE).read()
+  C_INDEXTEMPLATE      = open(C_INDEXTEMPLATE_FILE).read()
+  C_UNPROCESSED        = config.get('main','unprocessed')
+  C_PROCESSED          = config.get('main','processed')
 
 
-def touch(fname, times=None):
-    with open(fname, 'a'):
-        os.utime(fname, times)
-
-fileList = { C_UNPROCESSED:{}, C_PROCESSED:{} }
-for scan in [ C_UNPROCESSED, C_PROCESSED ]:
-  for fileName in glob.glob( C_HTMLPATH + "/*." + scan ):
-    baseName           = os.path.basename(fileName)
-    name               = "".join(baseName.split('.')[:-1])
-    parts              = baseName.split("-")
-    timeString         = "%s %s %s" % (parts[0], parts[1], parts[2])
-    postDate           = time.strptime(timeString, "%Y %m %d")
-    title              = " ".join(parts[3:])
-    title              = " ".join(title.split('.')[:-1])
-    title              = " ".join(title.split('-'))
-    fileList[scan][baseName] = {'date': postDate, 'title': title, 'path': fileName, 'baseName': name + "." + scan }
-
-    # create a stub file so when we scan for all html files to build the index, we find them
-    if scan == C_UNPROCESSED:
-      touch( C_HTMLPATH + "/" + name + "." + C_PROCESSED )
-
-
-# Create the sidebar that links to all the pages
-sidebar = ""
-for item in sorted(fileList[C_PROCESSED].values() , key=lambda p: p['date'], reverse=True ):
-  i = item
-  sidebar = sidebar + "<div class=menuItem><a href=../html/" + i['baseName'] + ">" + i['title'] + "</a></div>"
-
-# files that emacs write are .htm this script will create an html and
-# delete the htm
-for item in fileList[C_UNPROCESSED].values():
-  data = {'content': file( item['path']).read() , 'sidebar': sidebar }
-  with open( item['path'] + "l" , "w") as f:
+# stage one render all the htm files into html files
+for filename in glob.glob( C_HTMLPATH + "/*." + C_UNPROCESSED):
+  data = {'content': file( filename ).read() }
+  with open( filename + "l" , "w") as f:
     f.write(  pystache.render( C_TEMPLATE, data ) )
 
   #os.unlink( item['path'] )
+
+# stage 2, create an index of all the html files
+postIndex = []
+for filename in glob.glob( C_HTMLPATH + "/*." + C_PROCESSED):
+  postIndex.append( {
+    'baseName': os.path.basename(filename),
+    'title': " ".join( os.path.basename(filename).split('.')[0].split('-')[3:] ),
+    'postDate': time.strptime( "%s %s %s" %  tuple(os.path.basename(filename).split('-')[0:3]), "%Y %m %d")
+  })
+
+# stage 3 create the post list
+postData = ""
+for post in sorted(postIndex, key=lambda p: p['postDate'], reverse=True):
+  postData += "<div class=post>"
+  postData += "<div class=postTitle>" + post['title'] + "</div>"
+  postData += "<div class=postDate>" + post['date'] + "</div>"
+  postData += "</div>"
+
+print postData, postIndex
+
+# stage 4 print out the index.html
+with open('index.html', "w") as f:
+  f.write( pystache.render(C_INDEXTEMPLATE, {'content': postData}))
