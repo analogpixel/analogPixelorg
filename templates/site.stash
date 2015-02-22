@@ -1,16 +1,16 @@
 <html>
 	<head>
 		<link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
-		<link rel="stylesheet" href="../css/style.css" type="text/css" />
+		<link rel="stylesheet" href="/css/style.css" type="text/css" />
 	</head>
 
 	<body>
 		<div id="container">
 			<div id="pageContent">
-				<div id="pageHeader"><a href="../index.html">Home</a></div>
+				<div id="pageHeader"><a href="/index.html">Home</a></div>
 				<div class="clearFloat"></div>
 			  {{{content}}}
-				<div id="pageFooter"><a href="../index.html">Home</a></div>
+				<div id="pageFooter"><a href="/index.html">Home</a></div>
 				<div class="clearFloat"></div>
 			</div>
 		</div>

@@ -1,0 +1,58 @@
+[[/img/dtmf_version2.jpg]]
+
+* What it is
+Any robot can communicate over a high speed data link, but why not drop it down a notch?  Maybe 300baud? maybe  slower, maybe a lot slower.  What about communicating over those funny tones your phone makes when you press the buttons; might as well make those (boops and beeps)[https://github.com/analogpixel/dtmfbot/tree/master/webApp/public/audio-dtmf] do something useful like drive a little robot around.
+
+I started with the Sparkfun (Magician)[https://www.sparkfun.com/products/10825] chassis, and then (printed)[https://github.com/analogpixel/dtmfbot/tree/master/3dmodel] my own base that could hold an IPhone in place since it seemed wasteful to permanently glue my phone to the base just to keep it from sliding around.  On top of the phone base sits a little stand for the Arduino so I don't end up scratching my phone screen too much.
+
+I needed a way to get the phone to make the bloopy sounds on command so I wrote a  (nodejs)[http://nodejs.org/] (application)[https://github.com/analogpixel/dtmfbot/tree/master/webApp] that uses the  (socket io)[http://socket.io/] library  to communicate to the phone. With the application in place, I can remotely trigger tone signals on the phone, which then pass to the next part.
+
+Next up, I use (this dtmf library)[http://forum.arduino.cc/index.php?topic=121540.0] for the arduino to decode signals sent to port A0, and a few very small modifications later, I have the arduino converting the boops and beeps in to forwards and backwards.
+
+The Arduino talks to a simple (hbridge)[hbridgeNotes] to control the motors. If you don't know what an hbridge does, it allows you to make the motors go forward and backwards depending on what signals you send it; high/low will make the motor turn forward, and low/high will make the motor turn backwards.   Now when the arduino detects the boop boop beep for 4, it  sends the signal to the hbridge chip saying "hey, make the wheels go round and round in the forward direction" (this is a loose translation of the signal passed by the chip.)
+
+While I could send commands from the (command line)[https://github.com/analogpixel/dtmfbot/blob/master/webApp/sendcmd.sh]  through the nodjs rest api , I decided to write a (simple interface)[https://github.com/analogpixel/dtmfbot/blob/master/webApp/public/con.html] to control the robot.  I fired up (Inkscape)[inkscapenotes], drew some arrow buttons, edited the properties to call javascript functions, and then exported the whole thing as optimized  svg (an option in save as.)  I took that svg blob and just pasted in the html, and there I had a simple interface to drive the robot around.
+
+[[/img/simpleRobotDrivingInterface.png]]
+
+Now all I need to do is fire up the node application, connect to it with the iphone which is connected to the arduino that is connected to the motors, and then connect to to the controlling webpage (also hosted through the node application.) and I can drive my little robot around the room using bleeps and bloops.
+
+
+* Some Simple Debugging
+At first I wasn't sure what was going into the arduino from the headphone jack so I created a simple (serial graph)[processingArduinoSerial] of the signal coming into port A0 on the arduino so I could make sure everything was working correctly.
+=Decoding DTMF
+Using (this dtmf lib)[http://forum.arduino.cc/index.php?topic=121540.0] and changing dtmf.detect(d_mags,512); to dtmf.detect(d_mags,0);  I was able to decode the tones as they came in. Not much modification was needed.
+{if (thischar == '5') {
+      digitalWrite(2,LOW);
+    }
+}
+with a simple setup of just the red wire from the headphone jack going to port A0 and then the ground of the headphone cable going to the Ardunio ground. If you are using stereo headphones, you only need either left or right, I don't think it matters as long as you only pick one along with ground.
+
+* iphone Note
+The iphone won't play sound unless you first click on something to make it play sound, so if you want to remotely play sound on the phone, you'll need to first click a button on the interface to play a sound, and then after that you are free to have javascript play any sound you want.
+
+* Hooking up the Motors
+Mostly for my own sanity if I ever need to re-hook this up
+** pin hookups
+   - pin 3 goes to logic 4 (pin 4 is being used in dtmf lib somewhere)
+   - pin 5 goes to logic 5
+   - pin 6 goes to logic 1
+   - pin 7 goes to logic 2
+** Breakout
+   starting from bottom
+   - 1: motor logic 1
+   - 2: motor term 1
+   - 3: motor term 2
+   - 4: motor logic 2
+   - 5: motor logic 3
+   - 6: motor term 3
+   - 7: motor term 4
+   - 8: motor logic 4
+
+
+
+* links
+  - [[http://netwerkt.wordpress.com/2011/08/25/goertzel-filter/][Goertzel Filter]]
+  - [[https://github.com/jacobrosenthal/Goertzel][Arduino Goertzel Filter]]
+  - [[http://forum.arduino.cc/index.php?topic=121540.0][Arduino DTMF lib]]
+  - [[https://github.com/analogpixel/dtmfbot][GitHub Repo for the Robot Code]]

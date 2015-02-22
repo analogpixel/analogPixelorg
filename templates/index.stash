@@ -6,7 +6,7 @@
 
 		<body>
 			<div id="indexContainer">
-				<div id=logo><img id="logoImage" src="img/logo.png"></div>
+				<div id=logo><img id="logoImage" src="/img/logo.png"></div>
 				<div id=menu>
 					<div class=menuItem><a href="http://analog.smugmug.com">Photography</a></div>
 					<div class=menuItem><a href="https://github.com/analogpixel">Code</a></div>
