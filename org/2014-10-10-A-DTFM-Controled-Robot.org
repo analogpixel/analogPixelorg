@@ -1,4 +1,4 @@
-[[/img/dtmf_version2.jpg]]
+[[../img/dtmf_version2.jpg]]
 
 * What it is
 Any robot can communicate over a high speed data link, but why not drop it down a notch?  Maybe 300baud? maybe  slower, maybe a lot slower.  What about communicating over those funny tones your phone makes when you press the buttons; might as well make those [[https://github.com/analogpixel/dtmfbot/tree/master/webApp/public/audio-dtmf][boops and beeps]] do something useful like drive a little robot around.
@@ -13,7 +13,7 @@ The Arduino talks to a simple (hbridge)[hbridgeNotes] to control the motors. If 
 
 While I could send commands from the [[https://github.com/analogpixel/dtmfbot/blob/master/webApp/sendcmd.sh][command line]]  through the nodjs rest api , I decided to write a [[https://github.com/analogpixel/dtmfbot/blob/master/webApp/public/con.html][simple interface]] to control the robot.  I fired up (Inkscape)[inkscapenotes], drew some arrow buttons, edited the properties to call javascript functions, and then exported the whole thing as optimized  svg (an option in save as.)  I took that svg blob and just pasted in the html, and there I had a simple interface to drive the robot around.
 
-[[/img/simpleRobotDrivingInterface.png]]
+[[../img/simpleRobotDrivingInterface.png]]
 
 Now all I need to do is fire up the node application, connect to it with the iphone which is connected to the arduino that is connected to the motors, and then connect to to the controlling webpage (also hosted through the node application.) and I can drive my little robot around the room using bleeps and bloops.
 
