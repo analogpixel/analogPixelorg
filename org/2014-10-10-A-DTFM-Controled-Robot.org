@@ -1,17 +1,17 @@
 [[/img/dtmf_version2.jpg]]
 
 * What it is
-Any robot can communicate over a high speed data link, but why not drop it down a notch?  Maybe 300baud? maybe  slower, maybe a lot slower.  What about communicating over those funny tones your phone makes when you press the buttons; might as well make those (boops and beeps)[https://github.com/analogpixel/dtmfbot/tree/master/webApp/public/audio-dtmf] do something useful like drive a little robot around.
+Any robot can communicate over a high speed data link, but why not drop it down a notch?  Maybe 300baud? maybe  slower, maybe a lot slower.  What about communicating over those funny tones your phone makes when you press the buttons; might as well make those [[https://github.com/analogpixel/dtmfbot/tree/master/webApp/public/audio-dtmf][boops and beeps]] do something useful like drive a little robot around.
 
-I started with the Sparkfun (Magician)[https://www.sparkfun.com/products/10825] chassis, and then (printed)[https://github.com/analogpixel/dtmfbot/tree/master/3dmodel] my own base that could hold an IPhone in place since it seemed wasteful to permanently glue my phone to the base just to keep it from sliding around.  On top of the phone base sits a little stand for the Arduino so I don't end up scratching my phone screen too much.
+I started with the Sparkfun [[https://www.sparkfun.com/products/10825][Magician]] chassis, and then [[https://github.com/analogpixel/dtmfbot/tree/master/3dmodel][printed]] my own base that could hold an IPhone in place since it seemed wasteful to permanently glue my phone to the base just to keep it from sliding around.  On top of the phone base sits a little stand for the Arduino so I don't end up scratching my phone screen too much.
 
-I needed a way to get the phone to make the bloopy sounds on command so I wrote a  (nodejs)[http://nodejs.org/] (application)[https://github.com/analogpixel/dtmfbot/tree/master/webApp] that uses the  (socket io)[http://socket.io/] library  to communicate to the phone. With the application in place, I can remotely trigger tone signals on the phone, which then pass to the next part.
+I needed a way to get the phone to make the bloopy sounds on command so I wrote a  [[http://nodejs.org/][nodejs]] [[https://github.com/analogpixel/dtmfbot/tree/master/webApp][application]] that uses the [[http://socket.io/][socket io]] library  to communicate to the phone. With the application in place, I can remotely trigger tone signals on the phone, which then pass to the next part.
 
-Next up, I use (this dtmf library)[http://forum.arduino.cc/index.php?topic=121540.0] for the arduino to decode signals sent to port A0, and a few very small modifications later, I have the arduino converting the boops and beeps in to forwards and backwards.
+Next up, I use [[http://forum.arduino.cc/index.php?topic=121540.0][this dtmf library]] for the arduino to decode signals sent to port A0, and a few very small modifications later, I have the arduino converting the boops and beeps in to forwards and backwards.
 
 The Arduino talks to a simple (hbridge)[hbridgeNotes] to control the motors. If you don't know what an hbridge does, it allows you to make the motors go forward and backwards depending on what signals you send it; high/low will make the motor turn forward, and low/high will make the motor turn backwards.   Now when the arduino detects the boop boop beep for 4, it  sends the signal to the hbridge chip saying "hey, make the wheels go round and round in the forward direction" (this is a loose translation of the signal passed by the chip.)
 
-While I could send commands from the (command line)[https://github.com/analogpixel/dtmfbot/blob/master/webApp/sendcmd.sh]  through the nodjs rest api , I decided to write a (simple interface)[https://github.com/analogpixel/dtmfbot/blob/master/webApp/public/con.html] to control the robot.  I fired up (Inkscape)[inkscapenotes], drew some arrow buttons, edited the properties to call javascript functions, and then exported the whole thing as optimized  svg (an option in save as.)  I took that svg blob and just pasted in the html, and there I had a simple interface to drive the robot around.
+While I could send commands from the [[https://github.com/analogpixel/dtmfbot/blob/master/webApp/sendcmd.sh][command line]]  through the nodjs rest api , I decided to write a [[https://github.com/analogpixel/dtmfbot/blob/master/webApp/public/con.html][simple interface]] to control the robot.  I fired up (Inkscape)[inkscapenotes], drew some arrow buttons, edited the properties to call javascript functions, and then exported the whole thing as optimized  svg (an option in save as.)  I took that svg blob and just pasted in the html, and there I had a simple interface to drive the robot around.
 
 [[/img/simpleRobotDrivingInterface.png]]
 
@@ -21,7 +21,7 @@ Now all I need to do is fire up the node application, connect to it with the iph
 * Some Simple Debugging
 At first I wasn't sure what was going into the arduino from the headphone jack so I created a simple (serial graph)[processingArduinoSerial] of the signal coming into port A0 on the arduino so I could make sure everything was working correctly.
 =Decoding DTMF
-Using (this dtmf lib)[http://forum.arduino.cc/index.php?topic=121540.0] and changing dtmf.detect(d_mags,512); to dtmf.detect(d_mags,0);  I was able to decode the tones as they came in. Not much modification was needed.
+Using [[http://forum.arduino.cc/index.php?topic=121540.0][this dtmf lib]] and changing dtmf.detect(d_mags,512); to dtmf.detect(d_mags,0);  I was able to decode the tones as they came in. Not much modification was needed.
 {if (thischar == '5') {
       digitalWrite(2,LOW);
     }
