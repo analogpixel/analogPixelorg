@@ -21,15 +21,20 @@ if os.path.isfile("makeindex.cfg"):
   C_INDEXTEMPLATE      = open(C_INDEXTEMPLATE_FILE).read()
   C_UNPROCESSED        = config.get('main','unprocessed')
   C_PROCESSED          = config.get('main','processed')
-
+  C_SUBFOLDERS         = config.get('main', 'subfolders').split(',')
+  C_DEBUG              = config.getboolean('main','debug')
 
 # stage one render all the htm files into html files
-for filename in glob.glob( C_HTMLPATH + "/*." + C_UNPROCESSED):
-  data = {'content': file( filename ).read() }
-  with open( filename + "l" , "w") as f:
-    f.write(  pystache.render( C_TEMPLATE, data ) )
+for folder in [C_HTMLPATH] + C_SUBFOLDERS:
+  if C_DEBUG: print folder
+  for filename in glob.glob( folder + "/*." + C_UNPROCESSED):
+    if C_DEBUG: print(filename)
+    data = {'content': unicode(file( filename ).read(), "utf-8", errors="ignore")}
+    with open( filename + "l" , "w") as f:
+      f.write(  pystache.render( C_TEMPLATE, data ) )
 
   #os.unlink( item['path'] )
+
 
 # stage 2, create an index of all the html files
 postIndex = []
