@@ -1,0 +1,298 @@
+* JS1k Entry : Ascii Blobs
+	[[../img/asciiblobs.png]]
+
+  [[http://js1k.com/][JS1k]] is a contest to design a [[http://en.wikipedia.org/wiki/Demoscene][demo]] in javscript that is under 1k in size.  While fun
+	to complete the entry, I found that you also see how much extra cruft you add into a
+	program when you don't need to care about size.  Some of the cruft is good old error
+	checking that should probably be there, but some of it turns out to be completely useless
+	code; at one point after hours of minimizing my program down to fit in 1k, I found that
+	I had a variable defined that wasn't even used.
+
+	For my entry, I created ascii [[https://css-tricks.com/shape-blobbing-css/][blobs]]; which are pretty simple to make: draw boxes, blur
+	the entire scene , and then unblur it.  you are left with blobs that are melded together.
+
+  The submitted demo can be seen [[../demo/asciiboxsmall.html][here]] and the the program before I had to strip away parts
+	to make it fit can be seen [[../demo/asciiboxfull.html][here]].
+
+** Optimizing for size
+*** for loops
+		This program has a fair amount of for loops, and after awhile they starting taking up
+		space. Initially, when space didn't matter, I was using two for loops to iterate over
+		x/y values, but by just using one for loop iterating over the entire array, I was able
+		to save a bunch of space throughout the program.
+		#+begin_src javascript
+		data = [1,2,3,4,5,6];
+		width = 3;
+		# i points at a value in the data array
+		x = i % w
+		y = Math.floor( i / w)
+		#+end_src
+		Now instead of for(x) { for(y) { , I could just do a for(a) { }  and cover all the values.
+*** converting to int
+		I didn't have a need for floating point values, and Math.round or Math.floor takes up a lot
+		of my precious bytes, so instead I used the bitwise operator | to convert into an int:
+		#+begin_src javascript
+		myint = 1.23 |
+		#+end_src
+*** Merging functions
+		If you look at the full program, you see that blur and contrast and everything else are in there
+		own functions, but calling function() { } over and over takes up space, So I went back and merged
+		all the code into just one function.
+*** Run x times
+		I was using for(var p=0;p<x;p++){} (22chars)  and converted to p=20; while(p--){} (17chars)
+*** dropping the var
+		If I didn't need to define a var with var, I didn't
+*** if and for blocks
+		if an if statement or for block didn't require {}, then I stripped them out.
+*** run it through a compression program
+		in the end I ran it through this site: http://javascriptcompressor.com/  to merge it all together.
+		Unfortunately I wasn't paying very close attention as was clicking the Base62 encode option which
+		was actually making my program larger.
+
+** The tiny submitted program
+   After compressing the small program it turns out looking like this:
+	 #+begin_src javascript
+	 var d,w,h,points=[[83,23],[39,40],[79,-5],[101,8],[175,40],[177,39],[10,10]],pix=['#','@','!','|','.',' '];function valBetween(v,a,b){return(Math.min(b,Math.max(a,v)))}function update(){setTimeout(function(){window.requestAnimationFrame(update);t=new Uint8Array(w*h);for(i=0;i<7;i++){points[i][1]+=Math.random()*3+1|0;if(points[i][1]>h){points[i][1]=-15}for(u=0;u<450;u++)t[valBetween(points[i][0]+(u%30)+((points[i][1]+(u/30|0))*w),0,w*h)]=255}b=t;l="";p=20;while(p--){for(y=0;y<h;y++){for(x=0;x<w;x++){if(p==1)l+=pix[(6*b[x+(y*w)]/255)|0];q=0;for(i=-1;i<2;i++)for(j=-1;j<2;j++)q+=t[valBetween(x+i,0,w-1)+(valBetween(y+j,0,h-1)*w)];b[x+(y*w)]=~~q/9}if(p==1)l+="\n"}t=b}d.value=l},90)}d=document.createElement("textarea");a=d.style;a.width="999";a.height="627";document.body.appendChild(d);w=122;h=40;update();
+	 #+end_src
+
+** The small program
+   This is the full program stripped down to the point where it was under 1k.
+   #+begin_src javascript :tangle ../demo/asciiboxsmall.html
+     <html>
+         <body>
+         <div id=foo></div>
+
+     <script>
+
+     var d,w,h,points = [[83,23],[39,40],[79,-5],[101,8],[175,40],[177,39],[10,10]],pix=['#','@','!','|','.',' '];
+     function valBetween(v, min, max) { return (Math.min(max, Math.max(min, v))); }
+
+     function update() {
+
+         setTimeout( function() {
+             window.requestAnimationFrame(update);
+             t = new Uint8Array(w * h);
+
+             for ( i=0; i < 7; i++) {
+                 points[i][1] += Math.random() * 3 +1|0;
+                 if (points[i][1]>h){points[i][1]=-15}
+                 for (u=0; u < 450; u++) t[ valBetween( points[i][0] + (u%30) + ( (points[i][1] + (u/30|0))*w), 0, w*h) ] = 255;
+             }
+
+             b=t;
+             l="";
+             p=20;
+             while( p-- ) {
+                 for ( y=0; y < h; y++) {
+                     for ( x=0; x < w; x++) {
+                         if(p==1) l +=  pix[(6 * b[x + (y * w)] / 255)|0];
+                         q = 0;
+                         for ( i=-1; i < 2; i++) for ( j=-1; j <2; j++) q += t[ valBetween(x+i, 0, w-1)  + (valBetween(y+j, 0, h-1) * w) ];
+                         b[x + (y*w)] = ~~ q/9;
+                     }
+                     if(p==1) l+= "\n";
+                 }
+                 t = b;
+             }
+
+             d.value = l;
+
+         }, 90);
+     }
+
+     window.onload = function() {
+     d = document.createElement("textarea");
+     a = d.style;
+     a.width = "999px";
+     a.height = "627px";
+     document.body.appendChild(d);
+     w = 122;
+     h = 40;
+     update();
+     }
+
+     </script>
+     </body>
+
+	 #+end_src
+
+** The full program
+	 This is what I started with:
+
+	 #+begin_src javascript :tangle ../demo/asciiboxfull.html
+     <html>
+     <body>
+     <script>
+
+     var fps = 10;
+     var width=10;
+     var height=10;
+     var boxSize=30;
+     var numBoxes = 10;
+     var points = [];
+     var BLACK = 255;
+     var blurAmmount = 20;
+     var maxFallSpeed = 5;
+     var aframe = null;
+
+     var colorMax = 6;
+     var pixels = {6: '#', 5: '@', 4: '$', 3: '|', 2: ',', 1: '.', 0: ' ' }
+
+     function map_range(value, low1, high1, low2, high2) {
+         return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+     }
+
+     function randint(l,h) {
+       return Math.floor((Math.random() * h) + l);
+     }
+
+     function draw(a) {
+         d = "";
+         for (var y=0; y< height; y++) {
+             for (var x=0; x< width; x++) {
+                 d = d + pixels[ a[x + (y * width)] ];
+             }
+             d = d + "\n";
+         }
+
+         document.getElementById("display").value=d;
+     }
+
+     function makeSurface()  {
+         return new Uint8Array(width * height);
+     }
+
+     function box(a,x,y,s) {
+         for (var i=0; i < s; i++) {
+             for (var j=0; j < s/2; j++) {
+                 safex = valBetween(x+i, 0, width-1);
+                 safey = valBetween(y+j, 0, height-1);
+                 a[safex + (safey*width)] = BLACK;
+             }
+         }
+         return a;
+     }
+
+     function valBetween(v, min, max) {
+         return (Math.min(max, Math.max(min, v)));
+     }
+
+     function contrast(a) {
+         for (var i=0; i < a.length; i++) {
+             a[i] = map_range(a[i], 0, BLACK, 0, colorMax);
+         }
+         return a;
+     }
+
+     function blur(a,v) {
+         var b = makeSurface();
+
+         // number of times to run the blur
+         for (var p=0; p < v; p++) {
+             // for every pixel
+             for (var x=0; x < width; x++) {
+                 for (var y=0; y < height; y++) {
+                     // average all of it's neighbors
+                     var t = 0;
+                     for (var i=-1; i < 2; i++) {
+                         for (var j=-1; j <2; j++) {
+                             safex = valBetween(x+i, 0, width-1);
+                             safey = valBetween(y+j, 0, height-1);
+                             t = t + a[safex + (safey * width) ];
+                         }
+                     }
+                     b[x + (y*width)] = Math.round( t/9 , 0,5, 0,3);
+                 }
+             }
+             a = b;
+         }
+         return b;
+     }
+
+
+
+     function findWidth() {
+         ta = document.getElementById("display")
+         a = "";
+         while (1) {
+             a = a + "#";
+             ta.value = a;
+             if (ta.clientWidth < ta.scrollWidth) { ta.value=""; return a.length - 2;}
+         }
+     }
+
+     function findHeight() {
+         ta = document.getElementById("display")
+         a = "";
+         while (1) {
+             a = a + "#\n";
+             ta.value = a;
+             if (ta.clientHeight < ta.scrollHeight) { ta.value=""; return a.split("\n").length - 2;}
+         }
+     }
+
+
+     function setup() {
+         var d = document.createElement("textarea")
+         d.setAttribute("id", "display");
+         d.style.overflow = "auto";
+         d.style.resize = "none";
+         d.style.width = "100%";
+         d.style.height = "90%";
+         d.style.color = "#87ceeb";
+         d.style.background = "radial-gradient(ellipse at center, #333 0%,#111 100%)";
+         d.style.fontsize = "14px";
+         d.style.resize = "none";
+         d.setAttribute("wrap", "off");
+
+         document.body.appendChild(d);
+
+         width = findWidth();
+         height = findHeight();
+
+         points = [];
+         for (var i=0; i < numBoxes; i++) {
+             points.push( {x: randint(0,width), y: randint(0,height), yinc: randint(1,maxFallSpeed) } );
+         }
+
+         window.onresize = setup;
+         update();
+     }
+
+     function update(timestamp) {
+         aframe = setTimeout( function() {
+             window.requestAnimationFrame(update);
+             t = makeSurface();
+             for (var i=0; i < points.length; i++) {
+
+                 points[i].y += points[i].yinc;
+                 if (points[i].y > height) {
+                     points[i].y = -boxSize/2;
+                     points[i].x = randint(0,width)
+                     points[i].yinc = randint(1,maxFallSpeed);
+                 }
+
+                 t = box(t, points[i].x, points[i].y, boxSize)
+             }
+             draw(contrast(blur(t,blurAmmount)));
+         }, 1000 / fps);
+     }
+
+     function toggle() {
+         if (aframe) {
+             window.clearTimeout(aframe);
+             aframe = false;
+         } else {
+             update();
+         }
+     }
+
+     window.onload = function() { setup(); }
+     </script>
+
+         <input style="float: right;" type=submit onclick="toggle()">
+     </body>
+
+     </html>
+
+	 #+end_src

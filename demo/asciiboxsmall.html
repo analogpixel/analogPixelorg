@@ -1,0 +1,55 @@
+<html>
+    <body>
+    <div id=foo></div>
+
+<script>
+
+var d,w,h,points = [[83,23],[39,40],[79,-5],[101,8],[175,40],[177,39],[10,10]],pix=['#','@','!','|','.',' '];
+function valBetween(v, min, max) { return (Math.min(max, Math.max(min, v))); }
+
+function update() {
+
+    setTimeout( function() {
+        window.requestAnimationFrame(update);
+        t = new Uint8Array(w * h);
+
+        for ( i=0; i < 7; i++) {
+            points[i][1] += Math.random() * 3 +1|0;
+            if (points[i][1]>h){points[i][1]=-15}
+            for (u=0; u < 450; u++) t[ valBetween( points[i][0] + (u%30) + ( (points[i][1] + (u/30|0))*w), 0, w*h) ] = 255;
+        }
+
+        b=t;
+        l="";
+        p=20;
+        while( p-- ) {
+            for ( y=0; y < h; y++) {
+                for ( x=0; x < w; x++) {
+                    if(p==1) l +=  pix[(6 * b[x + (y * w)] / 255)|0];
+                    q = 0;
+                    for ( i=-1; i < 2; i++) for ( j=-1; j <2; j++) q += t[ valBetween(x+i, 0, w-1)  + (valBetween(y+j, 0, h-1) * w) ];
+                    b[x + (y*w)] = ~~ q/9;
+                }
+                if(p==1) l+= "\n";
+            }
+            t = b;
+        }
+
+        d.value = l;
+
+    }, 90);
+}
+
+window.onload = function() {
+d = document.createElement("textarea");
+a = d.style;
+a.width = "999px";
+a.height = "627px";
+document.body.appendChild(d);
+w = 122;
+h = 40;
+update();
+}
+
+</script>
+</body>

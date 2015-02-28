@@ -1,0 +1,174 @@
+<html>
+<body>
+<script>
+
+var fps = 10;
+var width=10;
+var height=10;
+var boxSize=30;
+var numBoxes = 10;
+var points = [];
+var BLACK = 255;
+var blurAmmount = 20;
+var maxFallSpeed = 5;
+var aframe = null;
+
+var colorMax = 6;
+var pixels = {6: '#', 5: '@', 4: '$', 3: '|', 2: ',', 1: '.', 0: ' ' }
+
+function map_range(value, low1, high1, low2, high2) {
+    return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+}
+
+function randint(l,h) {
+  return Math.floor((Math.random() * h) + l);
+}
+
+function draw(a) {
+    d = "";
+    for (var y=0; y< height; y++) {
+        for (var x=0; x< width; x++) {
+            d = d + pixels[ a[x + (y * width)] ];
+        }
+        d = d + "\n";
+    }
+
+    document.getElementById("display").value=d;
+}
+
+function makeSurface()  {
+    return new Uint8Array(width * height);
+}
+
+function box(a,x,y,s) {
+    for (var i=0; i < s; i++) {
+        for (var j=0; j < s/2; j++) {
+            safex = valBetween(x+i, 0, width-1);
+            safey = valBetween(y+j, 0, height-1);
+            a[safex + (safey*width)] = BLACK;
+        }
+    }
+    return a;
+}
+
+function valBetween(v, min, max) {
+    return (Math.min(max, Math.max(min, v)));
+}
+
+function contrast(a) {
+    for (var i=0; i < a.length; i++) {
+        a[i] = map_range(a[i], 0, BLACK, 0, colorMax);
+    }
+    return a;
+}
+
+function blur(a,v) {
+    var b = makeSurface();
+
+    // number of times to run the blur
+    for (var p=0; p < v; p++) {
+        // for every pixel
+        for (var x=0; x < width; x++) {
+            for (var y=0; y < height; y++) {
+                // average all of it's neighbors
+                var t = 0;
+                for (var i=-1; i < 2; i++) {
+                    for (var j=-1; j <2; j++) {
+                        safex = valBetween(x+i, 0, width-1);
+                        safey = valBetween(y+j, 0, height-1);
+                        t = t + a[safex + (safey * width) ];
+                    }
+                }
+                b[x + (y*width)] = Math.round( t/9 , 0,5, 0,3);
+            }
+        }
+        a = b;
+    }
+    return b;
+}
+
+
+
+function findWidth() {
+    ta = document.getElementById("display")
+    a = "";
+    while (1) {
+        a = a + "#";
+        ta.value = a;
+        if (ta.clientWidth < ta.scrollWidth) { ta.value=""; return a.length - 2;}
+    }
+}
+
+function findHeight() {
+    ta = document.getElementById("display")
+    a = "";
+    while (1) {
+        a = a + "#\n";
+        ta.value = a;
+        if (ta.clientHeight < ta.scrollHeight) { ta.value=""; return a.split("\n").length - 2;}
+    }
+}
+
+
+function setup() {
+    var d = document.createElement("textarea")
+    d.setAttribute("id", "display");
+    d.style.overflow = "auto";
+    d.style.resize = "none";
+    d.style.width = "100%";
+    d.style.height = "90%";
+    d.style.color = "#87ceeb";
+    d.style.background = "radial-gradient(ellipse at center, #333 0%,#111 100%)";
+    d.style.fontsize = "14px";
+    d.style.resize = "none";
+    d.setAttribute("wrap", "off");
+
+    document.body.appendChild(d);
+
+    width = findWidth();
+    height = findHeight();
+
+    points = [];
+    for (var i=0; i < numBoxes; i++) {
+        points.push( {x: randint(0,width), y: randint(0,height), yinc: randint(1,maxFallSpeed) } );
+    }
+
+    window.onresize = setup;
+    update();
+}
+
+function update(timestamp) {
+    aframe = setTimeout( function() {
+        window.requestAnimationFrame(update);
+        t = makeSurface();
+        for (var i=0; i < points.length; i++) {
+
+            points[i].y += points[i].yinc;
+            if (points[i].y > height) {
+                points[i].y = -boxSize/2;
+                points[i].x = randint(0,width)
+                points[i].yinc = randint(1,maxFallSpeed);
+            }
+
+            t = box(t, points[i].x, points[i].y, boxSize)
+        }
+        draw(contrast(blur(t,blurAmmount)));
+    }, 1000 / fps);
+}
+
+function toggle() {
+    if (aframe) {
+        window.clearTimeout(aframe);
+        aframe = false;
+    } else {
+        update();
+    }
+}
+
+window.onload = function() { setup(); }
+</script>
+
+    <input style="float: right;" type=submit onclick="toggle()">
+</body>
+
+</html>
