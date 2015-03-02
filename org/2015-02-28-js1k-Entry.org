@@ -243,6 +243,7 @@
          d.style.background = "radial-gradient(ellipse at center, #333 0%,#111 100%)";
          d.style.fontsize = "14px";
          d.style.resize = "none";
+         d.style.fontFamily = "monospace";
          d.setAttribute("wrap", "off");
 
          document.body.appendChild(d);
