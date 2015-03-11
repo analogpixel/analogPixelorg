@@ -1,5 +1,4 @@
 #+HTML_HEAD: <style>pre.src {background-color: #303030; color: #e5e5e5;}</style>
-#+OPTIONS:    H:4  toc:2 \n:nil ::t |:t ^:{} -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
 
 * Literate System Administration
 
