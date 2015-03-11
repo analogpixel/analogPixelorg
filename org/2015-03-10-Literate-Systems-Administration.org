@@ -1,0 +1,386 @@
+#+HTML_HEAD: <style>pre.src {background-color: #303030; color: #e5e5e5;}</style>
+#+OPTIONS:    H:4  toc:2 \n:nil ::t |:t ^:{} -:t f:t *:t tex:t d:(HIDE) tags:not-in-toc
+
+* Literate System Administration
+
+* Overview
+   [[http://orgmode.org/worg/org-contrib/babel/intro.html#literate-programming][Literate Programming]] is a way to mix documentation of what you are doing, the
+	 results and your code all in once place, so a person can come along and see
+	 exactly what you have done and can reproduce the results .  Literate Systems
+	 Administration is the process of mixing documentation, results, and your code
+	 all in once place so a person (future you) can come along and see exactly
+	 what you have done, and can reproduce the results exactly.
+
+	 If you can iterate faster, then you can test possibilities faster, which will
+	 lead you to your best solution faster.  This framework is what I use to
+	 iterate faster, so I can find the correct answers to the problems I find at
+	 work.  You can no longer just rely on the Internet to answer your question,
+	 for every answer of x you have an equal number saying not x, and what version
+	 did this answer snippet work on?  Are you really going to try this untested
+	 change on your production system and hope it work?  Are you really going to
+	 implement that change which you have no idea how it work?  Building a system
+	 you don't understand creates massive amounts of technical debt, which in turn
+	 creates stress.  You need to know what you are deploying, and how it is
+	 built, otherwise you have no hope of fixing it when it breaks.
+
+	 Not only does this system help me iterate faster, but it also gives me a
+	 fully functioning test environment.  So when my production system does have
+	 issues, I can bring up an exact copy in test to work on a solution.
+
+	 Using this system, I've built an [[https://github.com/analogpixel/analogPixelorg/blob/master/org/2015-02-16-A-Complete-Puppet-Deployment.org][entire puppet master server environment]] that
+	 can be brought up and tested at any time.  Each time the environment is
+	 brought up, it builds it from scratch, so I know that what I have is a
+	 complete working configuration.  All the packages are pulled live from the
+	 puppet and centos repos, all the configuration is done live to that set of
+	 packages, and when provisioning is finished, I have a fully functional puppet
+	 client server instance running with two test clients (debian/rhel) waiting to
+	 check-in.  If that wasn't enough, I have full documentation of every part of
+	 this system for me, or anyone that wants to see how this system was built.
+
+* The Parts
+** Emacs
+		This is what glues it all together.  It took me a few months to learn [[http://www.gnu.org/software/emacs/][emacs]]
+		to the point where I'm competent in it, but the time was well worth it. I
+		have this warning at the bottom, but I'll repeat it here since most people
+		read from the top to the bottom; Don't install one of those bloated kitchen
+		sink emacs distrobutions.  Just download the base version of emacs pick one
+		package, install it, figure it out, and then move on to the next.  And if
+		you don't like a package? Rip it out and don't use it.  The kitchen sink
+		distrobutions are daunting to learn if you are new to emacs, and really just
+		hinder you from learning emacs.  Just realize that emacs will take awhile to
+		figure it out, and take it slow.
+
+** Org Mode
+		The base of everything is [[http://orgmode.org/][Org Mode]] in emacs.  This might seem strange at
+		first looking at the orgmode website, but orgmode creates an environment
+		where you can mix live code, documentation, diagrams, macros, syntax
+		highliting, and so much more.  And with a few keystrokes, you can have full
+		documentation of the environment you have just deployed. (=C-c C-e h h=)
+
+** Org Babel
+		[[http://orgmode.org/worg/org-contrib/babel/intro.html][Org babel]] allows you to mix documentation and code together in one
+		place. Using babel I can combine Puppet code, vagrant build files, and shell
+		scripts all in one document.  And by tangling =C-c C-v C-t= the source file,
+		all of the parts extract out into their only separate files which can then
+		be used to build the system.
+
+		For tangeling to work, you define a src block, and add the :tangle flag to
+		it, for example:
+
+		#+begin_src org
+      ,#+begin_src sh :tangle c:/data/vm1/myscript.sh
+
+      ,#+end_src
+		#+end_src
+
+    When you run the tangle command, =C-c C-v C-t= , the file myscript.sh will
+		be created in the c:/data/vm1 directory.  To edit that file, you would cursor
+		into the block and type =C-c <single quote>= and that section of code
+		will open in a new buffer using the correct major mode for editing.
+		(=C-c <single-quote>= again will take you back.)
+
+
+** Emacs major modes
+    Major modes in emacs customize the environment to work well with whatever
+		you happen to be editing.  If you are editing python code, the major mode
+		could do syntax highliting and indentation for you.
+
+		The good news, there is a major mode for everything. The even better news is
+		that emacs has a package system, so all you need to do to install a major
+		mode is run =M-x install-package= and type in the major mode you are looking
+		for.  The modes I currently use the most are:
+		- puppet-mode
+		- ruby-mode
+		- sh-mode
+		- python-mode
+    - yaml-mode
+		But your milage will vary based on what you do.
+
+** YASnippet
+		Why type?  See the first paragraph, the faster you can iterate the faster
+		you can test.  Be on the lookout for typing the same thing over and over,
+		and then replace that workflow with a macro.  When it comes to writing
+		puppet code, why would you want to type out an entire file type when you
+		could just type file<tab> and have it all there waiting for you.  Plus, once
+		you start using macros, your output becomes more consistent, and less error
+		prone.
+
+		If you only have one snippet in orgmode, it should be a [[https://github.com/analogpixel/dotEmacs/blob/master/snippets/org-mode/src][src]] snippet.
+
+		install YASnippet with =M-x install-package= =yasnippet=
+
+** Magit
+		If you are hosting your files in a git repo, then [[https://magit.github.io/][magit]] makes it slightly
+		easier to deal with things.
+
+		install magit with =M-x install-package= =magit=
+
+** ditaa
+		Because diagrams make things easier to understand.  [[http://ditaa.sourceforge.net/][Ditaa]] allows you to create
+		diagrams in emacs using [[http://www.emacswiki.org/emacs/ArtistMode][artist mode]].
+
+		Takes something that looks like this:
+    #+begin_src sh
+            +-----------+         +-----------+
+            |           |         |           |
+            |           |         |           |
+            |           +<------->+           |
+            |           |         |           |
+            |           |         |           |
+            +-----------+         +-----------+
+		#+end_src
+
+		and makes it look like this:
+
+    #+begin_src ditaa :file ../img/ditaaexample.png
+            +-----------+         +-----------+
+            |           |         |           |
+            |           |         |           |
+            |           +<------->+           |
+            |           |         |           |
+            |           |         |           |
+            +-----------+         +-----------+
+		#+end_src
+
+
+** Vagrant
+		Then next time you create a virtual machine for testing, write down every
+		step you go through to create that virtual machine; this includes logging
+		into whatever system you need to login to, creating the vm, all the clicks
+		to get through the process, configuring the machine, and tearing it down
+		when you are done.  If this is more work than typing "vagrant up" then you
+		need to use [[https://www.vagrantup.com/][vagrant]].
+
+		If you are using YASnippet, you should probally have some macros for
+		[[https://github.com/analogpixel/dotEmacs/blob/master/snippets/ruby-mode/vagvm][creating basic machines]] in vagrant.
+
+** VirtualBox
+		I use [[https://www.virtualbox.org/][virtual]] box on my workstations as the vm provider for Vagrant, for me,
+		this is much faster than using a remote virtual provider like vsphere and
+		cheaper (free) than VMWare workstation.  And really, with Vagrant, you don't
+		even see the backend or interact with the backend.
+
+    One note, if your virtual machines don't seem to boot, you'll probally need
+		to go into your bios and enable vm extensions in your bios.
+
+** Puppet
+		Vagrant images usually ship with either [[https://puppetlabs.com/][Puppet]] or Chef installed.  Using
+		vagrant with a provisioner like this, and only using this provisioner to
+		configure your complete system, guarantees you have a fully documented
+		working test environment when you are done.
+
+** AutoHotKey
+		What part of not typing the same thing over and over didn't you get?  If you
+		type the same thing over and over every day create a macro.  Not everything
+		is in emacs, so for stuff outside of emacs use [[http://www.autohotkey.com/][Autohotkey]].
+
+** Simplynoise
+    Because work is loud and full of interruptions, Go to [[http://simplynoise.com/][Simply Noise]], click on
+		the brown circle, and put on some headphones.
+
+* The Skeleton File
+   This orgmode files is a basic skeleton of what I usually start with. I use it
+	 so much, I have a [[https://github.com/analogpixel/dotEmacs/blob/master/snippets/org-mode/testing][macro]] for it in YASnippet.
+
+   to get this to insert in my emacs setup with YASnippet running, all I need to
+	 do is open a new file, type testing<tab> and the name of system.  then
+	 everything is filled in and ready to go.  At this point if I tangle, =C-c C-v
+	 C-t= all the directories and files will be created, I can open a [[https://code.google.com/p/conemu-maximus5/][terminal]], cd
+	 into c:/data/myvm, and run vagrant up.
+
+	 If you don't already have the vagrant vm image, it'll download it from the
+	 Internet, then boot it up, login , and run puppet on it.  Once everything is
+	 done loading, you can run: vagrant ssh, and you'll be logged into your test
+	 machine.
+
+	 #+begin_src org
+
+     ,#+HTML_HEAD: <style>pre.src {background-color: #303030; color: #e5e5e5;}</style>
+     ,* Introduction
+       describe the document here
+
+       ,#+begin_src ditaa :file test01_diagram.png
+
+
+       ,#+end_src
+
+     ,** Scripts
+        ,#+begin_src sh :tangle c:/data/myvm/manifests/script.sh
+        #!/bin/bash
+        echo "hi"
+
+        ,#+end_src
+
+     ,** Puppet Code for test01
+        ,#+begin_src puppet :tangle c:/data/myvm/manifests/test01.pp
+        ,#+end_src
+
+     ,** Vagrant File
+        ,#+begin_src ruby :tangle c:/data/myvm/Vagrantfile
+        Vagrant.configure(2) do |config|
+
+        config.vm.define "test01" do |test01|
+        test01.vm.box_url = "https://dl.dropbox.com/u/14741389/vagrantboxes/lucid64-lamp.box"
+        test01.vm.box = "ubuntu"
+        test01.vm.hostname = "test01"
+        test01.vm.network "private_network", ip: "192.168.3.2"
+        test01.vm.provision "puppet" , manifest_file: "test01.pp"
+        end
+        end
+
+     ,** errors
+        -
+
+     ,** links
+        -
+	 #+end_src
+
+** The Puppet section
+	 This section of the file holds the manifest file to build the machine.  Make
+	 sure to use emacs puppet major mode, and YASnippet to fill in common puppet
+	 types.
+
+	 when you deploy files with the puppet code, vagrant will mount your local
+	 workspace to the virtual machine, so your puppet manifest will be in
+	 /vagrant/manifests/test01.pp. If you plan on running this many times (puppet
+	 apply /vagrant/manifests/test01.pp) you might want to use autohotkey to
+	 create a macro to do that for you (mine is vagpup<tab> or ctrl-r pup)
+
+** The Vagrant file section
+	 this section holds the vagrant file used to build all the machines.  In emacs
+	 the ruby major mode seems to work fine for editing it.  See the [[http://docs.vagrantup.com/v2/vagrantfile/][Vagrant]]
+	 documentation on how to setup a vagrant file.
+
+** The Errors Section
+	 I like to believe that I can remember more than 10minutes into the past, but
+	 so far that hasn't proved true.  So every time I run into any error, I
+	 document the error and how I fixed it in the errors section of the file.
+	 Then when that error comes up again, I don't have to try to remember what I
+	 did, or if it was the same error, or...  etc.  I just look down at the error
+	 section, and see what I did to fix it.
+
+** The Links Section
+	 As I find places on the Internet that have helped me complete the build, I
+	 add them to the links at the bottom.  This way the next person has a place to
+	 look for more information, and I have a reference of the places I went to
+	 look in case I have questions.
+
+* Tangle and save macro
+	 In org-babel, when you want to edit a src block, and you have the major mode
+	 installed in emacs, you can move inside that region and type =C-c <single
+	 quote>= and you'll be taken to a new buffer of that code.  In this mode you
+	 have two options when you are ready to test, you can type =C-c <single
+	 quote>= again to switch back to the main buffer, then save and tangle.  Or
+	 you can use this lisp code that does that for you:
+
+	 #+begin_src lisp
+     ;; When in a tangle buffer edit, save the file, and tangle it
+     (defun saveAndTangle ()
+       (interactive)
+       (org-edit-src-save)
+       (switch-to-buffer (other-buffer (current-buffer) 1))
+       (org-babel-tangle)
+       (switch-to-buffer (other-buffer (current-buffer) 1))
+       )
+
+     (global-set-key (kbd "C-c t") 'saveAndTangle)
+     (global-set-key (kbd "C-c C-t") 'saveAndTangle)
+	 #+end_src
+
+* Emacs Configuration For Babel
+	 This configuration added to your .emacs will make working with org-babel
+	 easier.  It'll create directories if they don't exist, allow you to run
+	 in-line code without prompting, and it'll show use major mode color
+	 highlighting in your orgmode buffer.  I also force my files to utf-8-unix
+	 encoding since some programs in linux don't like getting windows file
+	 endings.
+
+   #+begin_src lisp
+     (setq org-src-fontify-natively t)
+
+     (org-babel-do-load-languages
+      'org-babel-load-languages
+      '((R . t)
+        (emacs-lisp . t)
+        (python . t)
+        (clojure . t)
+        (sh . t)
+        (ruby . t)
+        (ditaa . t)
+        ))
+
+     (setq org-confirm-babel-evaluate nil)  ;; don't ask to run code blocks
+
+     ;; create directories if they don't exist when you tangle
+     (setq org-babel-default-header-args (cons '(:mkdirp . "yes")  (assq-delete-all :mkdirp org-babel-default-header-args)))
+
+     ;; don't add a new line at the beginning of each file when you tangle
+     (setq org-babel-default-header-args (cons '(:padline . "no") (assq-delete-all :padline org-babel-default-header-args)))
+
+     ;; force unix style line endings
+     (prefer-coding-system 'utf-8-unix)
+     (set-default-coding-systems 'utf-8-unix)
+     (set-terminal-coding-system 'utf-8-unix)
+     (set-keyboard-coding-system 'utf-8-unix)
+     (set-selection-coding-system 'utf-8-unix)
+     (setq-default buffer-file-coding-system 'utf-8-unix)
+	 #+end_src
+
+* The Joys of Golf
+  You made it this far?  Slow news day huh?  Well, in summary, what this whole
+	process is turning into is a game of system administration golf.  Like in [[http://www.vimgolf.com/][ViM
+	Golf]] you try to complete the task in the least ammount of key strokes, in
+	systems adminstrators golf, you try to get your job done with the least
+	ammount of clicks and clacks.
+
+	I wouldn't recomend trying to implement this entire system all in one go, but
+	just take smalls parts and use those parts until you are comfortable using
+	them, then add the next part.  My initial experience with emacs was one of
+	those bloated kitchen sink distrobutions that include every wiz bang feature
+	ever made, and it turned out to be overwhelming, and I didn't even know what
+	to do with it.  But then I started over with a clean emacs, and started adding
+	packages one at a time, figured out how they worked, and then moved on to the
+	next one.
+
+	The goal of Litterate programming is you can give your results to another
+	person, and they can reproduce what you have exactly.  Like that, if you build
+	a system with the steps above, you'll be able to hand them the finished
+	orgmode file, and they'll be able to recreate your environment extactly as you
+	created it.
+
+
+* A complete session for the impatient
+  If you happened to clone my [[https://github.com/analogpixel/dotEmacs][.emacs.d]] from github, and installed vagrant and
+	virtualbox, then this would probally give you a fully functional vm:
+
+  open emacs and type:
+  - testing<tab>
+  - test01<tab>
+  - sample<tab>
+  - 2<tab>
+  - ctrl-c ctrl-v ctrl-t
+
+	then open a terminal and go to c:\data\sample and type:
+  - vagrant up
+  - vagrant ssh
+  - exit
+  - vagrant destroy -f
+
+* Fun Emacs Keys
+   C is ctrl and M is alt.  But unix people are dicks and want you to figure that
+	 out the hard way:
+
+   - =C-x <tab>= indent selected region
+   - =C-c <single quote>= edit src block in major mode
+	 - =C-x h <tab>= select everything and indent using major mode indent
+   - =C-c C-e h h= export current orgmode buffer as html file
+   - =M-q= reflow a paragraph
+
+* Todo
+   - using serverspec to create a TDD workflow.  Build use cases in serverspec and run
+		 them after the vms boot.
+	 - process to watch manifest file for a machine, and re-run when it sees a change, report
+		 status back (to emacs status bar would be nice.)
+   - a physical interface that shows idle/testing/failure/success lcd grid?
+   - babel is broken in that you can't use orgmode macros in tangled output.  This would make things
+		 so much nicer and consistent.
