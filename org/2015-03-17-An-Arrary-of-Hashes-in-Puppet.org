@@ -1,0 +1,181 @@
+#+OPTIONS: ^:nil
+
+* Introduction
+	If you came here expecting something to do with actual puppets, I apologize
+	in advance, and am really quite ashamed of myself for writeing about this
+	instead of actual puppets, which really are more fun to play with.  Maybe
+	a puppet with an arduino hooked up to [[https://lmms.io/][lmms]] sending midi signals that cause it to
+	sing when you open the mouth, or as you move it's little drummer arms up and
+	down it could send signals back to play virtual drum beats via midi. But...
+
+  This post is for anyone who ever wanted to take an array of hashes pulled from
+	hiera and use that data to do something in puppet, and I mean really, who
+	doesn't fall into this bucket? (This is also a post for future me, when
+	present me becomes future me and forgets how to do all of this.)
+
+	To perform this trick, you'll need to figure out three things: yaml,
+	create_resources, and puppet defined types.  The last one, defined types,
+	could be optional depending on what you're trying to do, but you might
+	as well read it all in case there is a quiz later, but then again, who am
+	I kidding, you have already skimmed past this section and went right for the
+	code, you probally didn't even see my awesome Idea of the midi puppet up in
+	the first paragraph; I should just use the rest of this paragraph to insult
+	your family and your favorite football team.
+
+** create_resources
+	 [[https://docs.puppetlabs.com/references/latest/function.html][create_resources]] is a puppet function that takes a hash and converts it into
+	 a set of resources.  For those that don't know all your puppet terms, shame
+	 on you, but:
+
+   This is a "file" resource:
+   #+begin_src puppet
+		 file {"samplefile":
+			 source => "puppet:///modules//",
+			 ensure => file,
+			 owner  => root,
+			 group  => root,
+			 mode   => 750,
+		 }
+
+	 #+end_src
+
+	 and this is a hash:
+	 #+begin_src puppet
+     $myhash = {
+       'name1' => { source => 'puppet:///modules/m/f1', owner  => 'root'},
+       'name2' => { source => 'puppet:///modules/m/f2', owner  => 'apache'},
+       }
+	 #+end_src
+
+	 And running create_resources( file, $myhash) would take *each key* (name1,
+	 name2) as the names, and create a file mapping the source and owner from the
+	 hash.
+
+	 #+begin_src ditaa :file ../img/create_resource_example.png
+
+        +---------+
+        |name     |------------------------+
+        |name1    |                        |  +---------------------+
+        +---------+                        |  |       File          |
+                                           |  |                     |
+        +---------+-------------+          +->+Name                 |
+        |source                 |             |                     |
+        |puppet://modules/m/f1  +------------>+Source               |
+        +---------+-------------+             |                     |
+                                           +->+owner                |
+        +----------+                       |  |                     |
+        |owner     +-----------------------+  +---------------------+
+        |root      |
+        +----------+
+	 #+end_src
+
+** Puppet defined types
+	 But what if you have to map more than just one resource?  That's where
+	 [[https://docs.puppetlabs.com/learning/definedtypes.html][defined types]] come in.  Defined types are magical creatures on their own;
+	 having the ability to take an array of values, and then break that array up
+	 into chunks and create sets of resources from those chunks.  Maybe instead of
+	 talking of magical creatures, a simple example:
+
+	 #+begin_src puppet
+     define mytype ($var1 , $var2) {
+
+        file {"/tmp/${name}":
+          content => "${var1}",
+          ensure => file,
+          owner  => root,
+          group  => root,
+          mode   => 750,
+        } ~>
+
+        exec {'run $name':
+          command     => "$var2 /tmp/${name}",
+          path        => ["/bin","/usr/bin","/sbin","/usr/sbin"],
+          refreshonly => true,
+        }
+
+     }
+
+	 #+end_src
+
+	 Now you have your own type called mytype that you can call with
+	 mytype{'myname' var1 => "bill", var2 => "bob" } and doesn't that look a lot
+	 like what the create_resource command is looking for?
+
+** Hiera
+	 If you aren't using hiera by now, you might want to turn your puppet master
+	 badge in at the door on your way out.  But since you are using hiera, then to
+	 tie all of this together, all you need to do is call: create_resources(
+	 mytype, hiera_hash('mydata') ) and then magically everything works, assuming
+	 you have this blob of yaml in your hiera someplace:
+
+	 #+begin_src yaml
+     mydata:
+       'name1':
+         var1: "a"
+         var2: "b"
+       'name2':
+         var1: "c"
+         var2: "d"
+	 #+end_src
+
+   where name1 and name2 are keys to the data, and when you call
+	 create_resources it creates a resource for each key where the key is the
+	 name variable passed into the resource.
+
+	 If you happen to know python, it would *kind of* look like this:
+	 #+begin_src python
+
+   # my data was pulled from hiera
+   mydata = {'key1': {'var1': 'a', 'var2': 'b'} , 'key2': {'var1': 'c', 'var2': 'd'}  }
+
+   # calling create_resources then does a loop over all the keys
+   for key in mydata:
+     name=key
+     var1=mydata[key]['var2']
+     var2=mydata[key]['var1']
+
+     # as it loops over the keys it does something with the values
+     file_resource(name, var1, var2)
+     exec_resource(name, var1, var2)
+	 #+end_src
+
+	 Using hiera_hash() gives you an added benefit, if you have a key (for example
+	 name1 above) declared in two places of your hiera tree, hiera will use the
+	 first version it finds, but still merge in non overlapping values from other
+	 parts of the tree where it finds them.  If you happen to have four matching
+	 entries in your common section, and one entry in your certname section for a
+	 specific machine, hiera will merge all of those together, and then
+	 create_resources() will take all of those values and create resources with
+	 them.  This comes in hand where you have admins that might have sudo access
+	 on ALL your machine (you put them in common) and then users that will have
+	 access to certain machines ( put them in a group or fqdn branch).
+
+** The final Pictures
+	 When you end up putting it all together, it looks something like this:
+
+	 #+begin_src ditaa :file ../img/create_resource_pic.png
+
+
+                                                                               +--------+      +----------+
+                                                                               |        |      |          |
+                                                                               |        +----->+          |
+                                                                               | file   |      |          |
+          +------------+        +-----------------+   +----------------+       |        |      |          |
+          |            |        |                 |   |                +------>+--------+      |          |
+          | data in    |        |                 |   |                |       +--------+      |          |
+          | hiera      |------->+create_resources +-->+  defined type  +------>+        |      |          |
+          |            |        |                 |   |                |       | user   +----->+ out      |
+          +------------+        +-----------------+   +----------------+---+   |        |      |          |
+                                                                           |   +--------+      |          |
+                                                                           |   +--------+      |          |
+                                                                           |   |        |      |          |
+                                                                           +-->+ exec   +----->+          |
+                                                                               |        |      |          |
+                                                                               +--------+      +----------+
+	 #+end_src
+
+
+** errors
+	 - can't convert nil into Hash at : you are passing the wrong yaml data into
+     create_resources.  check the sample data above and make sure you are using
+     that syntax to create the hashes with keys.
