@@ -1,0 +1,47 @@
+* Problem
+  A palindromic number reads the same both ways. The largest palindrome made from the product of two 2-digit numbers is 9009 = 91 × 99.
+
+  Find the largest palindrome made from the product of two 3-digit numbers.
+
+
+* Solution
+** Clojure
+   #+begin_src clojure
+   ; http://rosettacode.org/wiki/Palindrome_detection#Clojure
+   (defn palindrome? [a]
+     (def s (str a))
+     (loop [i 0
+            j (dec (. s length))]
+       (cond (>= i j) true
+             (= (get s i) (get s j))
+               (recur (inc i) (dec j))
+             :else false)))
+
+   (apply max
+   (filter palindrome?
+        (filter (fn [x] (even? (count(str x))) )
+                (flatten (map (fn [x] (map (fn [y] (* x y)) (range 100 1000) ))  (range 100 1000) )))
+
+   ))
+   #+end_src
+
+
+** Python
+   #+begin_src python
+   maxp = []
+
+   for a in range(999,0,-1):
+       for b in range(999,0, -1):
+           c = str(a * b)
+           if len(c) == 6:
+               if c[0] == c[-1]:
+                   if c[1] == c[-2]:
+                       if c[2] == c[-3]:
+                           maxp.append(c)
+
+
+   print max(maxp)
+   #+end_src
+
+
+   @TAGS palindrome

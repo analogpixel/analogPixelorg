@@ -1,0 +1,42 @@
+* Problem
+  Let d(n) be defined as the sum of proper divisors of n (numbers less than n which divide evenly into n).
+  If d(a) = b and d(b) = a, where a ≠ b, then a and b are an amicable pair and each of a and b are called amicable numbers.
+
+  For example, the proper divisors of 220 are 1, 2, 4, 5, 10, 11, 20, 22, 44, 55 and 110; therefore d(220) = 284. The proper divisors of 284 are 1, 2, 4, 71 and 142; so d(284) = 220.
+
+  Evaluate the sum of all the amicable numbers under 10000.
+
+* Solution
+  #+begin_src python
+  class Memoize:
+      def __init__(self, f):
+          self.f = f
+          self.memo = {}
+      def __call__(self, *args):
+          if not args in self.memo:
+              self.memo[args] = self.f(*args)
+          return self.memo[args]
+
+  def dprime(n):
+      t = 0
+      for i in xrange(1, n):
+          if n  % i == 0:
+              t = t + i
+      return t
+
+  d = Memoize(dprime)
+
+
+  t = []
+  for i in range(1,10000):
+      tmp1 = d(i)
+      tmp2 = d(tmp1)
+
+      if i == tmp1 and i == tmp2:
+         continue
+      elif i == tmp2:
+          t.append(i)
+          print i
+
+  print sum(t)
+  #+end_src

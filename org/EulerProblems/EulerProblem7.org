@@ -1,0 +1,90 @@
+* Problem
+  By listing the first six prime numbers: 2, 3, 5, 7, 11, and 13, we can see that the 6th prime is 13.
+
+  What is the 10 001st prime number?
+
+* Solution
+** Clojure
+   #+begin_src clojure
+   (defn isprime? [p]
+     (loop [x p i 2]
+       (if (> i (+ (Math/sqrt x) 1))
+         true
+       (if (= (mod x i ) 0)
+         false
+         (recur x (+ i 1)))
+       )
+     )
+   )
+
+
+   (last (take (inc 10001) ( filter isprime? (range))))
+   #+end_src
+
+
+** Python
+   #+begin_src clojure
+   import sys
+   import unittest
+   import ConfigParser
+   import os.path
+   import optparse
+   import time
+
+   class simpleTest(unittest.TestCase):
+
+       # Run before each test
+       def setUp(self):
+           pass
+
+       def test_testPrimes(self):
+           self.assertTrue( getPrimes(100) == [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97] )
+
+   def getPrimes(num):
+       primes = [2,3,5]
+
+       for x in range(6,num):
+           last = x % 10
+           if last in [0,2,4,5,6,8]:
+               continue
+           prime = True
+           for y in range(2,x):
+               if x % y == 0:
+                   prime = False
+                   break
+           if prime:
+               primes.append( x )
+
+       return primes
+
+   def main():
+       a =  getPrimes(200000)
+       print a[10000]
+
+
+   if __name__ == '__main__':
+
+       # read configuration file
+       config = ConfigParser.SafeConfigParser()
+       if os.path.isfile("run.cfg"):
+           config.read('run.cfg')
+           # config.get[Float/Int/Boolean]('config1', 'varname')
+
+       # parse command line options
+       parser = optparse.OptionParser()
+       #parser.add_option("-w", "--longname", help="", dest="varname", default="defaultValue")
+       parser.add_option("-t", "--test", action="store_true", help="boolean value", dest="runTest", default=False)
+       (options, args) = parser.parse_args()
+
+       # if test was given then run unit tests otherwise run main
+       if options.runTest:
+           del sys.argv[1:]
+           unittest.main()
+       else:
+           t1 = time.time()
+           main()
+           print("main ran in %f" % (time.time() - t1) )
+   #+end_src
+
+
+@TAGS prime

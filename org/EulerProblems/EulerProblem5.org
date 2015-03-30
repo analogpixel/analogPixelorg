@@ -1,0 +1,84 @@
+* Problem
+  2520 is the smallest number that can be divided by each of the numbers from 1 to 10 without any remainder.
+
+  What is the smallest positive number that is evenly divisible by all of the numbers from 1 to 20?
+
+* Solution
+** Clojure one line
+   time to run: 49 Seconds
+   #+begin_src clojure
+   (time
+    (first
+    (first
+       (filter #(= (count %) 17)
+               (map
+                     (fn [curnum]
+                      (for [ x (range 19 2 -1) :while (= (mod curnum x) 0) ] curnum )
+                     )
+
+                     (drop 126 (take-nth 20 (range)))
+                )
+        )
+     )
+     )
+   )
+   #+end_src
+
+
+** Clojure
+   time to run: 1.5 Seconds
+   #+begin_src clojure
+   (defn spn []
+
+     (loop [loopv 2520 i 19]
+       (if (= i 3) loopv
+       (if (not (= (mod loopv i) 0))
+         (recur (+ loopv 20) 20 )
+         (recur loopv (dec i) )
+       )
+       )
+
+     )
+     )
+
+   (spn )
+   #+end_src
+
+
+** Python
+   #+begin_src python
+   items = []
+
+   for i in range(1,100000000):
+       x = i * 20
+       solution = True
+       for a in range(19,1,-1):
+           if (x % a) != 0:
+               solution = False
+               break
+
+       if solution:
+           print "solution:" , x
+           break
+   #+end_src
+
+
+* Non Programming Solution
+  Compute the prime factorization of each number from 1 to 20, and multiply the greatest power of each prime together:
+
+  20 = 2 * 10 = 2 * 5 * 2
+  19 = 19
+  18 = 2 * 9 = 2 * 3 * 3
+  17 = 17
+  16 = 2 * 8 = 2 * 4 = 2 * 2 *2
+  15 = 3 * 5
+  14 = 2 * 7
+  13 = 13
+  11 = 11
+
+  All others are included in the previous numbers.
+
+  ANSWER: 2^4 * 3^2 * 5 * 7 * 11 * 13 * 17 * 19 = 232 792 560
+  (via forum : bitRAKE)
+
+@TAGS modulus,primefactorization,prime

@@ -1,0 +1,61 @@
+* Problem
+  You are given the following information, but you may prefer to do some research for yourself.
+
+  1 Jan 1900 was a Monday.
+  Thirty days has September,
+  April, June and November.
+  All the rest have thirty-one,
+  Saving February alone,
+  Which has twenty-eight, rain or shine.
+  And on leap years, twenty-nine.
+
+  A leap year occurs on any year evenly divisible by 4, but not on a century unless it is divisible by 400.
+
+  How many Sundays fell on the first of the month during the twentieth century (1 Jan 1901 to 31 Dec 2000)?
+
+* Solution
+  #+begin_src python
+  mm = [0,31, 28, 31,30,31,30,31,31,30,31,30,31]
+
+  d = 1
+  wd = 1
+  m = 1
+  y = 1900
+  count = 0
+  total = 0
+  MAXYEAR = 2000
+
+  while True:
+
+      if wd == 7 and d ==1:
+          print wd,d,m,y
+          total += 1
+
+      # increase the work day
+      # monday-sunday
+      wd = wd + 1
+      if wd == 8:
+          wd = 1
+
+      # increase day of the month
+      d = d + 1
+      if d > mm[m]:
+          d = 1
+          m = m + 1
+
+      if m > 12:
+          y = y + 1
+          m = 1
+          d = 1
+
+          if (y % 400 ==0) or (y %4 ==0 and y % 100 != 0):
+              mm[2] = 29 # leap year
+          else:
+              mm[2] = 28 # normal year
+
+          if y > MAXYEAR:
+              break
+
+  # minus two since we started a year early
+  print total - 2
+  #+end_src

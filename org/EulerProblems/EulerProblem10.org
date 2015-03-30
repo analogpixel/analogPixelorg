@@ -1,0 +1,110 @@
+* Problem
+  The sum of the primes below 10 is 2 + 3 + 5 + 7 = 17.
+
+  Find the sum of all the primes below two million.
+
+* Solution
+  #+begin_src clojure
+  import math
+
+  # http://primes.utm.edu/prove/prove2_1.html
+  def findPrimes(maxPrime):
+      pointer = 0
+
+      a = [2] + range(3,maxPrime, 2)
+
+      num = a[pointer]
+      zz = range(2, int(math.sqrt(maxPrime) +1))
+
+      while True:
+          for i in zz:
+              x = i * num
+              if x in a:
+                  a.remove(x)
+
+          pointer = pointer + 1
+          if  pointer >= len(a):
+              break
+          else:
+              num = a[pointer]
+
+      return a
+
+
+  a = findPrimes(2000000)
+  print a
+  print sum(a)
+
+  #+end_src
+
+
+* Solution not using Python sets
+  This runs in about a minute, the above never finished after a long long time.
+
+  #+begin_src clojure
+  import math
+
+  class primeList:
+      def __init__(self, size):
+          self.mylist = range(0, size)
+          self.size = size
+          self.mylist[0] = -1
+          self.mylist[1] = -1
+
+          for a in range(4, size, 2):
+              self.mylist[a] = -1
+
+          self.currentPrime = 2
+
+      def remove(self, x):
+          if x > 0 and x < self.size:
+              self.mylist[x] = -1
+
+
+      def nextPrime(self):
+          self.currentPrime = self.currentPrime + 1
+
+          while self.currentPrime < self.size and self.mylist[self.currentPrime] == -1:
+              self.currentPrime = self.currentPrime + 1
+
+          if self.currentPrime >= self.size:
+              return -1
+
+          return self.currentPrime
+
+      def makeList(self):
+          primes = []
+          for i in self.mylist:
+              if i != -1:
+                  primes.append(i)
+          return primes
+
+  # http://primes.utm.edu/prove/prove2_1.html
+  def findPrimes(maxPrime):
+      pl = primeList(maxPrime)
+      num = pl.currentPrime
+      #zz = range(2, 1 + int(math.sqrt(maxPrime)))
+      zz = range(2, maxPrime)
+
+      while True:
+          for i in zz:
+              x = i * num
+              if x > maxPrime:
+                  break
+              pl.remove(x)
+
+          num = pl.nextPrime()
+          if num == -1:
+              return pl.makeList()
+
+
+  a = findPrimes(2000000)
+  #print a
+  print sum(a)
+  #+end_src
+
+
+* Links
+  [[http://en.wikipedia.org/wiki/Sieve_of_Eratosthenes][Sieve of Eratosthenes]]
+
+@TAGS prime

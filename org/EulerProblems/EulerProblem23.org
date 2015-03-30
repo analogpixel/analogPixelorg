@@ -1,0 +1,57 @@
+* Problem
+  A perfect number is a number for which the sum of its proper divisors is exactly equal to the number. For example, the sum of the proper divisors of 28 would be 1 + 2 + 4 + 7 + 14 = 28, which means that 28 is a perfect number.
+
+  A number n is called deficient if the sum of its proper divisors is less than n and it is called abundant if this sum exceeds n.
+
+  As 12 is the smallest abundant number, 1 + 2 + 3 + 4 + 6 = 16, the smallest number that can be written as the sum of two abundant numbers is 24. By mathematical analysis, it can be shown that all integers greater than 28123 can be written as the sum of two abundant numbers. However, this upper limit cannot be reduced any further by analysis even though it is known that the greatest number that cannot be expressed as the sum of two abundant numbers is less than this limit.
+
+  Find the sum of all the positive integers which cannot be written as the sum of two abundant numbers.
+
+* Solution
+  #+begin_src python
+  def f(n):
+      t = 0
+      for i in xrange(1,n):
+          if n % i == 0:
+              t = t + i
+
+          # this is abundant
+          if t > n:
+              return 2
+
+      #this is perfect
+      if t == n:
+          return 1
+
+      # this is deficient
+      return 0
+
+  if not f(12) == 2: print "error 12 should be abundant"
+  if not f(28) == 1: print "error 28 should be perfect"
+  if not f(10) == 0: print "error 10 should be deficient"
+
+  a = []
+
+  # find all abundant numbers under max
+  for i in range(28123):
+      if f(i) == 2:
+          a.append(i)
+
+  sums = []
+  for i in a:
+      for j in a:
+          sums.append(i+j)
+
+  sums = list(set(sums))
+
+  final = []
+  for i in range(28123):
+      if not i in sums:
+          final.append(i)
+
+  print sum(final)
+
+  #+end_src
+
+
+@TAGS perfectnumber
