@@ -9,6 +9,7 @@ import os.path
 import time
 import pystache
 import sys
+import codecs
 
 config = ConfigParser.SafeConfigParser()
 
@@ -16,7 +17,9 @@ config = ConfigParser.SafeConfigParser()
 def renderPages(path, C_TEMPLATE, C_UNPROCESSED  ):
   for filename in glob.glob( path + "/*." + C_UNPROCESSED):
     data = {'content': unicode(file( filename ).read(), "utf-8", errors="ignore")}
-    with open( filename + "l" , "w") as f:
+    #with open( filename + "l" , "w") as f:
+    #  f.write(  pystache.render( C_TEMPLATE, data ) )
+    with codecs.open( filename + "l" , "w", "utf-8") as f:
       f.write(  pystache.render( C_TEMPLATE, data ) )
 
 def createDateIndex(C_HTMLPATH, C_PROCESSED):
