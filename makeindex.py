@@ -38,6 +38,7 @@ def htmlDateIndex(postIndex):
     postData += "<td class=postTitle><a href=./html/" + post['baseName'] + ">" + post['title'] + "</a></td>"
     postData += "</tr>"
   postData += "</table>"
+  return postData
 
 # render all the pages
 if os.path.isfile("makeindex.cfg"):
@@ -53,13 +54,12 @@ if os.path.isfile("makeindex.cfg"):
     if section != "main":
       C_TEMPLATE = open( config.get(section,'template')).read()
       C_PATH = config.get(section,'htmlPath')
-      C_INDEX = config.get(section,'indextemplate')
-
       renderPages( C_PATH , C_TEMPLATE, C_UNPROCESSED)
 
     if section == "index":
+      C_INDEX = open( config.get('main','indextemplate')).read()
       index = createDateIndex( C_PATH , C_PROCESSED)
       html = htmlDateIndex(index)
 
       with open('index.html', "w") as f:
-        f.write( pystache.render(C_INDEXTEMPLATE, {'content': html}))
+        f.write( pystache.render(C_INDEX, {'content': html}))
