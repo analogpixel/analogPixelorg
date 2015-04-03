@@ -1,0 +1,104 @@
+* What is seesaw
+	[[https://github.com/daveray/seesaw][Seesaw]] is a clojure library that interfaces with java swing to make
+	ui interfaces.  This is a brief tutorial on how to write
+	custom java controls that interface with seesaw using lien to
+  build and run the project.
+
+** Getting started
+   The first thing you need to do is use [[http://leiningen.org/][Lein]] to create a new project:
+	 #+begin_src sh
+   lein new simplegui
+	 #+end_src
+
+** Update the Lein project
+   once you have a project, cd into the directory and edit the project.clj
+	 file and under :dependencies add =[seesaw "1.4.2"]=:
+   #+begin_src clojure
+   :dependencies [[org.clojure/clojure "1.6.0"][seesaw "1.4.2"]]
+	 #+end_src
+   Once you add the dependencies, you can run =lein deps= and lein
+	 will go out and download all the libraries you need.
+
+** The Java
+   Next you'll want to create a .java file that defines what
+	 your new custom widget is going to look like:
+
+	 #+begin_src java
+     package demogui;
+
+     import java.awt.*;
+     import java.awt.event.*;
+     import javax.swing.*;
+
+     public class testlist extends Panel {
+         TextField text;
+         List list;
+
+         public testlist() {
+             text = new TextField();
+             list = new List();
+             setLayout(new BorderLayout());
+             add("North", text);
+             add("Center", list);
+         }
+     }
+	 #+end_src
+   save this file in the your project under src/java/testlist.java  which is
+	 in the folder that was created when you did the lein new. (src/java doesn't
+	 exist yet, you'll need to create it.)
+
+** Update the Lein project again
+	 now that you have created the java source file, you need to let lein
+   know to look for it, so open the project.clj file again and add
+	 a java-sources-path to it
+
+	 #+begin_src clojure
+   :java-source-paths ["src/java"]
+	 #+end_src
+   also add a main function so lein knows what to run
+	 #+begin_src clojure
+   :main simplegui.core
+	 #+end_src
+
+   the entire project file should look like this now:
+	 #+begin_src clojure
+     (defproject simplgui "0.1.0-SNAPSHOT"
+     :description "FIXME: write description"
+     :url "http://example.com/FIXME"
+     :license {:name "Eclipse Public License"
+               :url "http://www.eclipse.org/legal/epl-v10.html"}
+     :dependencies [[org.clojure/clojure "1.4.0"][seesaw "1.4.3"]]
+     :java-source-paths ["src/java"]
+     :main simplegui.core
+     )
+	 #+end_src
+
+** Create the clojure code
+	 now edit the file core.clj in the src/clojure directory
+
+	 #+begin_src clojure
+     (ns simplegui.core
+       (:use [seesaw.core] )
+       (:import [demogui testlist])
+       )
+
+     (defn -main [& args]
+       (native!)
+
+
+       (def f (frame :title "hi"))
+       (def m (new testlist))
+       (config! f :content m)
+       (-> f pack! show!)
+
+       )
+
+	 #+end_src
+
+** run the project
+	 now that everything is setup, you should be able to do a: =lein run= and
+	 see you your custom control sitting in a frame.
+
+* links
+  - [[http://pramode.net/clojure/2010/05/01/clojure-java-interop/][Clojure Java Interop]]
+	- [[https://gist.github.com/daveray/1441520][seesaw repl tutorial]]
