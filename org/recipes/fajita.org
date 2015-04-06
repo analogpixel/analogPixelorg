@@ -1,0 +1,43 @@
+* Fajita Recipes
+
+** Mix 1
+*** cooked
+    - protein
+	  - onion
+	  - peppers
+*** uncooked
+    - cheese
+    - salsa
+		- sour cream
+		- cilantro
+
+** Seasoning 1
+	 dry seasoning to add to the meat and the vegi as they cook
+   - 1TB cornstarch
+	 - 2tsp chli powder
+	 - 1tsp salt
+	 - 1tsp paprika
+	 - 1tsp sugar
+	 - 1/2tsp onion powder
+	 - 1/2tsp garlic powder
+	 - 1/4tsp cayenne pepper
+   - 1/2tsp ground cumin
+
+
+** Seasoning 2
+   wet seasoning, divide in to two bags and place meat in one bag
+	 and the vegis in the other bag to marinate.
+   - 1/2 cup olive oil
+	 - 3TB worchestershire sauce
+   - 3 cloves garlic
+	 - 1TB cumin
+	 - 1TB chili powder
+	 - 1/2tsp chili flakes
+	 - 1tsp salt
+	 - 1/2tsp pepper
+	 - 1TB sugar
+   - lime juice from lime
+
+
+* links
+  - [[http://www.seriouseats.com/2013/06/the-food-lab-how-to-make-best-fajitas.html][Grilled Skirt Steaks]]

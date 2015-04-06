@@ -1,8 +1,7 @@
 * What is seesaw
-	[[https://github.com/daveray/seesaw][Seesaw]] is a clojure library that interfaces with java swing to make
-	ui interfaces.  This is a brief tutorial on how to write
-	custom java controls that interface with seesaw using lien to
-  build and run the project.
+	[[https://github.com/daveray/seesaw][Seesaw]] is a clojure library that interfaces with java swing to make ui
+	interfaces.  This is a brief tutorial on how to write custom java controls
+	that interface with seesaw using lien to build and run the project.
 
 ** Getting started
    The first thing you need to do is use [[http://leiningen.org/][Lein]] to create a new project:
