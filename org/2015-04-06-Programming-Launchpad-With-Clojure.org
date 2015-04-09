@@ -1,0 +1,70 @@
+* Programming the Launchpad S9 with Clojure
+
+** Interactive mode
+	 I'm going to start by walking you through how to talk to the S 9
+	 in interactive mode.  To do this you'll need lein installed.
+
+	 create a new project with lein and start the repl.
+	 #+begin_src sh
+	 lein new midipad
+	 lein repl
+	 #+end_src
+
+	 Once the repl is started, import the libraries you'll need
+	 #+begin_src clojure
+	 (import '(javax.sound.midi MidiSystem Synthesizer ShortMessage))
+	 (import java.lang.String)
+	 #+end_src
+
+	 Now get a list of all the midi devices that are currently connected
+	 to the computer and print them out:
+	 #+begin_src clojure
+	 (def midiPorts (MidiSystem/getMidiDeviceInfo))
+	 (map (fn [s] (println (str s)) ) midiPorts )
+	 #+end_src
+
+	 Hopefully you see the midi device you want to connect to, maybe you'll
+	 see it listed twice.  The launchpad shows up twice as one device
+	 transmits and one recieves.  In my setup, the second midi device
+	 is a transmitter so lets grab the second launchpad:
+
+	 #+begin_src clojure
+	 (def launchpad (last (filter #(= "Launchpad S 9"(str %)) midiPorts)))
+	 (def launchmidi  (MidiSystem/getMidiDevice launchpad) )
+	 (.open launchmidi)
+	 (def recv  (.getReceiver launchmidi))
+	 #+end_src
+
+	 The above code lists all the midi ports, and uses the filter to only
+	 return a list of those that have Launcpad S 9 in the title.  I then
+	 take the last value out of the list, as that is the receiver, and set
+	 it in the launchpad variable.  Once I have that device, I get the device
+	 with the getMidiDevice call and place that in the launchmidi variable. I
+	 call the open function on that, to open the device, and then I call the
+	 getReceiver to get a receiver object that I can send messages to.
+
+	 At this point you have connect to the launchpad, and opened a
+	 communication channel to it.  Now you need to create a midi message
+	 and send it over to the device:
+
+	 #+begin_src clojure
+	 (def sm (ShortMessage.))
+	 (.setMessage sm 144, 0 3 60)
+	 (.send recv sm -1)
+	 #+end_src
+
+	 After running the above code, you should see the launchpad light up.  The
+	 Launchpad only listens on channel one, so of course you send to channel 0 to
+	 make it work.
+
+	 now close the connection so other people can use it:
+
+	 #+begin_src clojure
+	 (.close recv)
+	 #+end_src
+
+** Sending Messages
+
+** Receiving Messages
+
+** Playing music with overtone
