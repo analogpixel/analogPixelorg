@@ -1,0 +1,140 @@
+* Bit Shifting with Python
+  At some point in your life, you'll find  yourself at the end of a dark
+	alley, surrounded by mean looking thugy people, and they are waiting for
+	you to shift a bit to the right using python.  Are you ready for that day?
+
+  This is an interactive post, as in you should really have python installed,
+	and running so you can follow along.
+
+** How to make a binary number
+	 So if someone gave you a binary number, lets say 10100000 and expected
+	 you to do something with it in python, what would you do? You'd convert
+	 it to a int.  From your python shell run:
+	 #+begin_src python
+   print int('1010000',2)
+	 #+end_src
+	 And then print it out in HEX, because hex is used all the time with binary:
+	 #+begin_src python
+   print "%x" % int('10100000',2)
+	 #+end_src
+	 So we end up with decimal 160, hex a0 (which is written as 0xa0) , and binary
+   10100000. Using the int() function takes a string and converts it to the base you specify
+   at the end, in this case we specify that the string we are passing is
+   base 2. You can also type in binary numbers with the 0b prefix.  Typing in
+   0b01 would give you the decimal number 1 in python.  (and the 0x prefix is for hex)
+
+** Shift to the left
+	 In binary 1 is 1 and 10 is 2.  1 can be written as 1 or 01 or 001 or 0001.  2 can be
+	 written as 10 or 010 or 0010.  What happens if you take 1 (01) and shift everything
+	 left one so you get (10)?  what happens when you shift it more?  (btw 0x01 is 1 in hex)
+
+	 the << operator moves everything to the left one bit, filling the new empty space with a 0.
+
+	 #+begin_src python
+   print 0x01 << 1 # 010 = 2
+   print 0x01 << 2 # 0100 = 4
+   print 0x01 << 3 # 01000 = 8
+	 #+end_src
+
+** Shift to the right
+   the >> shifts bits to the right 1 place, dropping the right most bit off into
+	 the ocean; 001 becomes 000.
+
+	 For example take Decimal 8 that looks like 1000 in binary.
+	 #+begin_src python
+   print 0b1000 >> 1 # 0100 = 4
+   print 0b1000 >> 2 # 0010 = 2
+   print 0b1000 >> 3 # 0001 = 1
+	 #+end_src
+
+** Bitwise operators
+	 #+begin_src python
+	 # bitwise and
+	 print 0b1010 & 0b0101 # b0000 = 0
+
+	 # bitwise or
+	 print 0b1010 | 0b0101 # b1111 = 15
+
+	 # complement of x  0101 becomes 1010 (swap 0 and 1) (-x -1)
+	 print ~ int('1010',2),  int('0101',2)
+
+	 # bitwise exclusive or Each bit of the output is the same as the
+   # corresponding bit in x if that bit in y is 0, and it's
+   # the complement of the bit in x if that bit in y is 1
+	 print int('1111',2) ^ int('0000',2)
+	 #+end_src
+
+** Getting a certain bit
+	 So you have the binary number 10010110 and you need to get the third bit:
+   - first you mask out everything except the third bit with an and operation
+		 #+begin_src python
+     r1 = 0b10010110 & 0b00000100
+		 #+end_src
+	 - now in r1 you have: 00000100
+   - you need to shift your binary number over 2 spots so you can get the third
+		 digit into the 1's place
+		 #+begin_src python
+     0b00000100 >> 2  # 1
+		 #+end_src
+	this works because you have cleared out any other bits in the number, and then moved
+	the remaining bit over to the first spot, so you end up with the decimal of either
+	0 or 1, which is the value of the bit you were looking for.
+
+** cycle through 8 bits
+	 Ok, now adding everything from above, let's cycle through 8 bits in a loop:
+	 #+begin_src python
+     x = int('11101010',2)
+     for i in range(8):
+       print x & 1 # x & b00000001
+       x = x >> 1 # shift everything over 1
+	 #+end_src
+
+** Binary Hex and Decimal
+
+   | binary | hex | decimal |
+   | 0000   | 0   | 0       |
+   | 0001   | 1   | 1       |
+   | 0010   | 2   | 2       |
+   | 0011   | 3   | 3       |
+   | 0100   | 4   | 4       |
+   | 0101   | 5   | 5       |
+   | 0110   | 6   | 6       |
+   | 0111   | 7   | 7       |
+   | 1000   | 8   | 8       |
+   | 1001   | 9   | 9       |
+   | 1010   | A   | 10      |
+   | 1011   | B   | 11      |
+   | 1100   | C   | 12      |
+   | 1101   | D   | 13      |
+   | 1110   | E   | 14      |
+   | 1111   | F   | 15      |
+
+	 So someone give you the bit pattern 10101000 and they want the third bit from the
+	 left.  you could do  (0b1010100 & 0b00100000)  >> 5  or if you are a lazy typer
+	 you could see that 0b00100000 breaks into 0010 and 0000  and 0010=0x2 and 0000 is 0x0
+	 so you end up with 0x20 (you can check in python with  0b00100000 == 0x20 )
+	 now you have (0b10101000 & 0x20) >> 5
+
+	 Note the parens around the logical and operation.  Without the parens 0x20 would
+	 be bitshifted 5 and then logicaly anded with the other number
+
+*** Hex to Decimal
+		to convert from hex into decimal take 0xAF for example:
+    - F is in the 0 location  so you take the value F (which is 15) and multiply it by
+			16^0
+		- A is in the 1 location so you take the value A (which is 10) and multiply it by
+			16^1
+		- so you end up with 15*1 + 10*16 = 175
+**** convert 0xffff
+		 - 16^0 * 15 + 16^1 * 15 + 16 ^ 2 * 15 + 16 ^ 3 * 15
+		 - which is 15 + 240  + 3840 + 61440
+
+*** Binary to Decimal
+		to convert from binary to decimal take 10101111
+		- 2^0 * 1 + 2^1 * 1 + 2^2 * 1 + 2^3 * 1 + 2^4 * 0 + 2^5 * 1 + 2^6*0 + 2^7 *1
+		- which is 1 + 2 + 4 + 8 + 0 + 32 + 0 + 128  = 175
+
+** links
+   -  https://wiki.python.org/moin/BitManipulation
+   -  https://wiki.python.org/moin/BitwiseOperators
+   -  http://www.permadi.com/tutorial/numHexToDec/
