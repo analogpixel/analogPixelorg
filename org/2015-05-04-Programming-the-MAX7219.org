@@ -1,0 +1,122 @@
+* Programming the MAX7219 in python
+	"The MAX7219CNG is a compact, serial input/output common-cathode display
+	driver that can interface microprocessors to 7-segment numeric LED displays of
+	up to 8 digits, bar-graph displays, or 64 individual LEDs." --sparkfun
+
+	You can get the chip [[https://www.sparkfun.com/products/9622][here]] or get it as a kit [[https://www.sparkfun.com/products/11861][here]].  I got the LED matrix kit
+	which makes it really easy to get started.  Although the kit does come with
+	code to program the device, it doesn't really give a lot of detail on what is
+	going on.
+
+	The user guide for the chip can be found [[https://www.sparkfun.com/datasheets/Components/General/COM-09622-MAX7219-MAX7221.pdf][here]] and contains everything you need
+	to program the chip.
+
+	If you aren't to sure how to do bit manipulation in python, read [[http://analogpixel.org/html/2015-05-01-Bit-Shifting-With_Python.html][this]] first.
+
+** Communicating to the chip
+	 the chip has three pins used to communicate with it: clk,din, and cs.  to send
+	 a command to the chip:
+	 - set cs low
+	 - set clk low
+	 - set din to bit to send (0 or 1)
+	 - set clk high
+	 - repeat previous 3 steps(till all bits are sent 16)
+	 - set cs high
+
+	 the message the chip expects is 4 bits of garbage(can be anything) , 4 bits
+	 of the address of what you are writing to, and then 8 bits of data. A
+	 simple send session would look something like (sending 0110):
+
+	 - cs:0
+	 - clk:0
+	 - din:0
+	 - clk:1
+   - clk:0
+	 - din:1
+	 - clk:1
+   - clk:0
+	 - din:1
+	 - clk:1
+	 - clk:0
+	 - din:0
+	 - clk:1
+   - this pattern continues till done
+   - cs:1
+
+** Initial configuration
+	 The first this you need to do is setup the PI to communicate to the device
+	 which mostly means just setting up 3 output pins to the chip.
+
+	 #+begin_src python
+     #!/usr/bin/python
+
+     import RPi.GPIO as GPIO
+     import time
+
+     clk=24
+     cs=25
+     din=8
+
+     GPIO.setmode(GPIO.BCM)
+     GPIO.setup(clk, GPIO.OUT)
+     GPIO.setup(cs, GPIO.OUT)
+     GPIO.setup(din, GPIO.OUT)
+	 #+end_src
+
+** Sending a message
+	 the following code will take an address and a byte and send it to the chip.
+
+	 #+begin_src python
+     def writeByte(addr,byte):
+       # start the seq. with cs low
+       GPIO.output(cs,0)
+
+       # start from the left and send 1 bit at a time
+       # clock low, send bit, clock high
+       for i in range(8,0,-1):
+         GPIO.output ( clk, 0)
+         GPIO.output ( din, (2**(i-1) & addr) >> (i-1) )
+         GPIO.output ( clk, 1)
+
+       for i in range(8,0,-1):
+         GPIO.output ( clk, 0)
+         GPIO.output ( din, (2**(i-1) & byte) >> (i-1) )
+         GPIO.output ( clk, 1)
+
+       # end the seq. with cs high
+       GPIO.output(cs,1)
+	 #+end_src
+
+** Initialize the chip and write some data
+	 Before writing data to the chip, you'll need to send some
+	 initialization commands to it.  If you look in the data sheet
+	 you'll find an in depth explanation of the different commands
+	 you can send the chip, but the four below are most likely needed
+	 if you plan to control the lcd matrix.
+
+	 when using the matrix, the rows are addressed from 1-8.  you select
+	 the row you want, then send the bits you want turned on.  For example
+	 if on row 1 you want the first and last led turned on, you'd send
+	 1 for the address (0b00000001) and then 0b10000001 (129).
+
+	 #+begin_src python
+		 # init
+		 writeByte(0x09, 0x00) # set decode mode
+		 writeByte(0x0a, 0x01) # set the intensity
+		 writeByte(0x0b, 0x07) # scan limit
+		 writeByte(0x0f, 0x00) # switch from display test mode to normal op.
+
+		 # 4 trash bits then 4bit addr then 8bit data
+		 writeByte(1, 0b00111100) #00111100
+		 writeByte(2, 0x42) #01000010
+		 writeByte(3, 0x42)
+		 writeByte(4, 0x42)
+		 writeByte(5, 0x3c)
+		 writeByte(6, 0x42)
+		 writeByte(7, 0x42)
+		 writeByte(8, 0x3c)
+	 #+end_src
+
+
+* links
+	- the full source of the python program can be found [[https://github.com/analogpixel/lcdweb/blob/master/lcd.py][here]]
