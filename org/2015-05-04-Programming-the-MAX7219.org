@@ -1,3 +1,5 @@
+[[../img/matrixled.jpg]]
+
 * Programming the MAX7219 in python
 	"The MAX7219CNG is a compact, serial input/output common-cathode display
 	driver that can interface microprocessors to 7-segment numeric LED displays of
